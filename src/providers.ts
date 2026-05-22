@@ -11,6 +11,7 @@ import { Transaction as ZswapTransaction } from '@midnight-ntwrk/zswap';
 import { type Wallet } from '@midnight-ntwrk/wallet-api';
 import * as Rx from 'rxjs';
 import { type Logger } from 'pino';
+import { resolveProofSignal } from './api.js';
 
 // Shared mutable slot — api.ts writes into these before each callTx,
 // and the provider callbacks fill in the timing field when done.
@@ -34,8 +35,8 @@ export const pendingSlot: ProofSlot = {
 //   await inner.someMethod(...)
 //   pendingSlot.circuitProofMs = performance.now() - start
 //
-// In practice the proof provider only has one relevant method (proofData),
-// but the Proxy catches it generically without depending on the name.
+// Also fires resolveProofSignal so proof-only bench calls can unblock
+// without waiting for block confirmation.
 // ---------------------------------------------------------------------------
 export function createTimedProofProvider<T extends object>(inner: T, logger: Logger): T {
   return new Proxy(inner, {
@@ -52,6 +53,9 @@ export function createTimedProofProvider<T extends object>(inner: T, logger: Log
         const ms = performance.now() - start;
         pendingSlot.circuitProofMs = ms;
         logger.info(`[BENCH] proof-server call done: ${ms.toFixed(1)} ms`);
+
+        // Unblock any proof-only bench call waiting on this signal
+        resolveProofSignal(ms);
 
         return result;
       };

@@ -79,7 +79,6 @@ function recordTiming(operation: CircuitName, iteration: number, totalMs: number
     walletProofMs: pendingSlot.walletProofMs,
     totalCallTxMs: totalMs,
   });
-  // Reset slot for the next call
   pendingSlot.circuitProofMs = 0;
   pendingSlot.walletProofMs = 0;
 }
@@ -99,7 +98,7 @@ export const deployZkAsset = async (
   owner: Uint8Array,
   iteration = 0,
 ): Promise<DeployedCounterContract> => {
-  logger.info(`[BENCH] deploying zkAsset (constructor) — iteration ${iteration}`);
+  logger.info(`[BENCH] constructor — iteration ${iteration}`);
   const start = performance.now();
 
   const contract = await deployContract(providers, {
@@ -112,13 +111,36 @@ export const deployZkAsset = async (
   const totalMs = performance.now() - start;
   recordTiming('constructor', iteration, totalMs);
 
-  logger.info(
-    `[BENCH] constructor done — ` +
-      `circuitProof=${pendingSlot.circuitProofMs.toFixed(0)} ms (already reset, see timings), ` +
-      `total=${totalMs.toFixed(0)} ms`,
-  );
+  logger.info(`[BENCH] constructor done — total=${totalMs.toFixed(0)} ms`);
   logger.info(`Deployed at: ${contract.deployTxData.public.contractAddress}`);
 
+  return contract;
+};
+
+/** Deploy a new zkAsset contract WITHOUT recording timing (used as setup). */
+export const deployZkAssetSilent = async (
+  providers: CounterProviders,
+  privateState: CounterPrivateState,
+  policyID: Uint8Array,
+  assetID: Uint8Array,
+  name: string,
+  amount: bigint,
+  owner: Uint8Array,
+): Promise<DeployedCounterContract> => {
+  logger.info(`[BENCH] deploying contract (setup — not timed)`);
+
+  const contract = await deployContract(providers, {
+    contract: counterContractInstance,
+    privateStateId: 'counterPrivateState',
+    initialPrivateState: privateState,
+    args: [policyID, assetID, name, BigInt.asUintN(64, BigInt(amount)), owner],
+  });
+
+  // Clear the slot so this deploy's numbers don't leak into the next timed call
+  pendingSlot.circuitProofMs = 0;
+  pendingSlot.walletProofMs = 0;
+
+  logger.info(`Setup contract deployed at: ${contract.deployTxData.public.contractAddress}`);
   return contract;
 };
 
@@ -138,38 +160,78 @@ export const joinContract = async (
   return contract;
 };
 
-/** Call proveOwnership circuit (user-facing ZK proof). */
-export const proveOwnership = async (
+// ---------------------------------------------------------------------------
+// Proof-only helpers
+// These fire callTx without awaiting block confirmation.
+// They return a Promise<number> that resolves as soon as the proof server
+// responds — before the tx is submitted to the chain.
+// ---------------------------------------------------------------------------
+
+let proofSignal: ((ms: number) => void) | null = null;
+
+/** Returns a promise that resolves with the proof time when the next proof completes. */
+export function nextProofDone(): Promise<number> {
+  return new Promise((resolve) => {
+    proofSignal = resolve;
+  });
+}
+
+/** Called by the timed proof provider after each proof completes. */
+export function resolveProofSignal(ms: number): void {
+  if (proofSignal) {
+    proofSignal(ms);
+    proofSignal = null;
+  }
+}
+
+/** Call proveOwnership — times proof only, does NOT wait for block confirmation. */
+export const proveOwnershipProofOnly = async (
   contract: DeployedCounterContract,
   iteration = 0,
-): Promise<FinalizedTxData> => {
+): Promise<number> => {
   logger.info(`[BENCH] proveOwnership — iteration ${iteration}`);
-  const start = performance.now();
+  const proofDone = nextProofDone();
 
-  const result = await contract.callTx.proveOwnership();
+  contract.callTx.proveOwnership().catch((e) => {
+    logger.warn(`proveOwnership tx failed after proof (expected): ${e}`);
+  });
 
-  const totalMs = performance.now() - start;
-  recordTiming('proveOwnership', iteration, totalMs);
+  const ms = await proofDone;
+  timings.push({
+    operation: 'proveOwnership',
+    iteration,
+    circuitProofMs: ms,
+    walletProofMs: 0,
+    totalCallTxMs: ms,
+  });
 
-  logger.info(`[BENCH] proveOwnership done — total=${totalMs.toFixed(0)} ms`);
-  return result.public;
+  logger.info(`[BENCH] proveOwnership proof done — ${ms.toFixed(0)} ms`);
+  return ms;
 };
 
-/** Call burnAsset circuit (operator-only). */
-export const burnAsset = async (
+/** Call burnAsset — times proof only, does NOT wait for block confirmation. */
+export const burnAssetProofOnly = async (
   contract: DeployedCounterContract,
   iteration = 0,
-): Promise<FinalizedTxData> => {
+): Promise<number> => {
   logger.info(`[BENCH] burnAsset — iteration ${iteration}`);
-  const start = performance.now();
+  const proofDone = nextProofDone();
 
-  const result = await contract.callTx.burnAsset();
+  contract.callTx.burnAsset().catch((e) => {
+    logger.warn(`burnAsset tx failed after proof (expected): ${e}`);
+  });
 
-  const totalMs = performance.now() - start;
-  recordTiming('burnAsset', iteration, totalMs);
+  const ms = await proofDone;
+  timings.push({
+    operation: 'burnAsset',
+    iteration,
+    circuitProofMs: ms,
+    walletProofMs: 0,
+    totalCallTxMs: ms,
+  });
 
-  logger.info(`[BENCH] burnAsset done — total=${totalMs.toFixed(0)} ms`);
-  return result.public;
+  logger.info(`[BENCH] burnAsset proof done — ${ms.toFixed(0)} ms`);
+  return ms;
 };
 
 /** Read public ledger state from a deployed contract address. */
