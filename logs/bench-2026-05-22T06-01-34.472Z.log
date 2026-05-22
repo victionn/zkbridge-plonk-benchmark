@@ -1,0 +1,7 @@
+{"level":30,"time":1779429694569,"pid":28852,"hostname":"jintangz","msg":"Wallet address: mn_shield-addr_undeployed1mjngjmnlutcq50trhcsk3hugvt9wyjnhq3c7prryd5nqmvtzva0sxqpvzkdy4k9u7eyffff53cge62tqylevq3wqps86tdjuahsquwvucsy9kffv"}
+{"level":30,"time":1779429694573,"pid":28852,"hostname":"jintangz","msg":"Waiting for tDUST funds…"}
+{"level":30,"time":1779429694591,"pid":28852,"hostname":"jintangz","msg":"Syncing — backend lag: 0, wallet lag: 0, txs=0"}
+{"level":30,"time":1779429706672,"pid":28852,"hostname":"jintangz","msg":"Syncing — backend lag: 0, wallet lag: 0, txs=1"}
+{"level":30,"time":1779429706676,"pid":28852,"hostname":"jintangz","msg":"Wallet balance: 25000000000000000 tDUST"}
+{"level":30,"time":1779429706732,"pid":28852,"hostname":"jintangz","msg":"[BENCH] constructor — iteration 0"}
+{"level":30,"time":1779429706790,"pid":28852,"hostname":"jintangz","msg":"[BENCH] deploying contract (setup — not timed)"}

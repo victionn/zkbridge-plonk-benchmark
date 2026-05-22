@@ -12,8 +12,8 @@ export default defineConfig({
     },
     globals: true,
     environment: 'node',
-    include: ['src/**/*.bench.ts'],
-    exclude: ['node_modules'],
+  include: ['src/**/*.bench.ts', 'src/bench.test.ts'],
+exclude: ['node_modules', 'src/fund-wallet.test.ts'],
     root: '.',
     reporters: ['verbose'],
     sequence: {

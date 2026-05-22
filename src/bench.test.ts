@@ -26,6 +26,8 @@
 
 import { describe, it, beforeAll, afterAll } from 'vitest';
 import path from 'node:path';
+import crypto from 'node:crypto';
+import { persistentHash, CompactTypeVector, CompactTypeBytes } from '@midnight-ntwrk/compact-runtime';
 import * as api from './api.js';
 import { resolveConfig, currentDir } from './config.js';
 import { createLogger } from './logger-utils.js';
@@ -64,6 +66,27 @@ const ASSET_NAME_HEX  = '41537465704265796f6e64303033';
 const ASSET_NAME_TEXT = Buffer.from(ASSET_NAME_HEX, 'hex').toString('utf8');
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Owner keypair
+//
+// Generates a realistic secret key and derives its public key the same way
+// the Compact contract does — via persistentHash with the "assetOwner:pk:"
+// prefix. This ensures proveOwnership is proving a real non-trivial witness,
+// not a degenerate all-zeros case.
+// ─────────────────────────────────────────────────────────────────────────────
+
+function generateOwnerKeypair(): { secretKey: Buffer; publicKey: Buffer } {
+  const secretKey = crypto.randomBytes(32);
+
+  const rt_type = new CompactTypeVector(2, new CompactTypeBytes(32));
+  const prefix  = Buffer.alloc(32);
+  Buffer.from('assetOwner:pk:').copy(prefix); // zero-padded to 32 bytes
+
+  const publicKey = Buffer.from(persistentHash(rt_type, [prefix, secretKey]));
+
+  return { secretKey, publicKey };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -95,6 +118,9 @@ let wallet: Wallet & Resource;
 let providers: Awaited<ReturnType<typeof api.configureProviders>>;
 let latestDeployedContract: DeployedCounterContract;
 
+// Generated once in beforeAll, shared across all three suites
+let owner: { secretKey: Buffer; publicKey: Buffer };
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Suite
 // ─────────────────────────────────────────────────────────────────────────────
@@ -112,10 +138,14 @@ describe('ZK Proof Generation Benchmark', () => {
     const logger = await createLogger(logPath);
     api.setLogger(logger);
 
-    console.log(`\n  Config : ${config.constructor.name}`);
-    console.log(`  Proof  : ${config.proofServer}`);
-    console.log(`  Iters  : ${ITERATIONS}`);
-    console.log(`  Log    : ${logPath}\n`);
+    // Generate owner keypair once — reused across all three suites
+    owner = generateOwnerKeypair();
+
+    console.log(`\n  Config      : ${config.constructor.name}`);
+    console.log(`  Proof       : ${config.proofServer}`);
+    console.log(`  Iters       : ${ITERATIONS}`);
+    console.log(`  Owner pubkey: ${owner.publicKey.toString('hex')}`);
+    console.log(`  Log         : ${logPath}\n`);
 
     wallet = await api.buildWalletAndWaitForFunds(config, WALLET_SEED);
     providers = await api.configureProviders(wallet, config);
@@ -127,13 +157,12 @@ describe('ZK Proof Generation Benchmark', () => {
   });
 
   // ── 1. constructor ─────────────────────────────────────────────────────────
-  // Still awaits full deployment — we need the contract address for suite 2.
-  // The proof time is captured by the proxy before submission, so the
-  // circuitProofMs measurement is accurate despite the await.
+  // Deploys a fresh zkAsset contract for each iteration using the real owner
+  // public key. Still awaits full deployment since the contract address is
+  // needed for suite 2. Proof time is captured by the proxy before submission.
   describe('1 · constructor (operator deploys zkAsset)', () => {
     it(`runs ${ITERATIONS} iterations`, async () => {
       const assetID = buildAssetID();
-      const owner   = Buffer.alloc(32);
 
       for (let i = 0; i < ITERATIONS; i++) {
         console.log(`  [constructor] iteration ${i + 1}/${ITERATIONS}`);
@@ -145,7 +174,7 @@ describe('ZK Proof Generation Benchmark', () => {
           assetID,
           ASSET_NAME_TEXT,
           1n,
-          owner,
+          owner.publicKey,  // real derived public key
           i,
         );
       }
@@ -153,18 +182,21 @@ describe('ZK Proof Generation Benchmark', () => {
   });
 
   // ── 2. proveOwnership ──────────────────────────────────────────────────────
-  // Fires callTx.proveOwnership() without awaiting block confirmation.
-  // Resolves as soon as the proof server responds.
+  // Proves ownership using the real secret key that corresponds to the
+  // owner public key stored in the contract above. This is the realistic
+  // case — the prover has to compute persistentHash over a non-trivial input.
+  // Fires callTx without awaiting block confirmation.
   describe('2 · proveOwnership (user proves asset ownership)', () => {
     it(`runs ${ITERATIONS} iterations`, async () => {
       if (!latestDeployedContract) {
         throw new Error('No deployed contract from constructor suite — run suites in order');
       }
 
+      // Join with the matching secret key — must correspond to owner.publicKey
       const ownerContract = await api.joinContract(
         providers,
         latestDeployedContract.deployTxData.public.contractAddress,
-        { assetOwnerSecretKey: Buffer.alloc(32) },
+        { assetOwnerSecretKey: owner.secretKey },  // real secret key
       );
 
       for (let i = 0; i < ITERATIONS; i++) {
@@ -176,12 +208,12 @@ describe('ZK Proof Generation Benchmark', () => {
 
   // ── 3. burnAsset ───────────────────────────────────────────────────────────
   // Each iteration needs a fresh contract (burnAsset is terminal).
-  // Setup deploys use deployZkAssetSilent — they don't pollute constructor timings.
+  // Setup deploys use deployZkAssetSilent so they don't pollute constructor
+  // timings. The real owner public key is used to keep deployment realistic.
   // Only the burn proof itself is timed and recorded.
   describe('3 · burnAsset (operator burns zkAsset)', () => {
     it(`runs ${ITERATIONS} iterations`, async () => {
       const assetID = buildAssetID();
-      const owner   = Buffer.alloc(32);
 
       for (let i = 0; i < ITERATIONS; i++) {
         console.log(`  [burnAsset] iteration ${i + 1}/${ITERATIONS} — deploying setup contract…`);
@@ -194,7 +226,7 @@ describe('ZK Proof Generation Benchmark', () => {
           assetID,
           ASSET_NAME_TEXT,
           1n,
-          owner,
+          owner.publicKey,  // real derived public key
         );
 
         const operatorContract = await api.joinContract(

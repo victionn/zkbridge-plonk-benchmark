@@ -59,8 +59,7 @@ export const configureProviders = async (
       privateStateStoreName,
     }),
     publicDataProvider: indexerPublicDataProvider(config.indexer, config.indexerWS),
-    zkConfigProvider: new NodeZkConfigProvider<'proveOwnership' | 'burnAsset' | 'transferAsset'>(
-      zkConfigPath,
+    zkConfigProvider: new NodeZkConfigProvider<'proveOwnership' | 'burnAsset'>(      zkConfigPath,
     ),
     proofProvider: createTimedProofProvider(rawProofProvider, logger),
     walletProvider: walletAndMidnightProvider,

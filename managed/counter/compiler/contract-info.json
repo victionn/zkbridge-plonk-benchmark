@@ -19,24 +19,58 @@
         "types": [
         ]
       }
+    }
+  ],
+  "witnesses": [
+    {
+      "name": "operatorSecretKey",
+      "arguments": [
+      ],
+      "result type": {
+        "type-name": "Struct",
+        "name": "Maybe",
+        "elements": [
+          {
+            "name": "is_some",
+            "type": {
+              "type-name": "Boolean"
+            }
+          },
+          {
+            "name": "value",
+            "type": {
+              "type-name": "Bytes",
+              "length": 32
+            }
+          }
+        ]
+      }
     },
     {
-      "name": "transferAsset",
-      "pure": false,
+      "name": "assetOwnerSecretKey",
       "arguments": [
-        {
-          "name": "newOwner",
-          "type": {
-            "type-name": "Bytes",
-            "length": 32
-          }
-        }
       ],
-      "result-type": {
-        "type-name": "Tuple",
-        "types": [
+      "result type": {
+        "type-name": "Struct",
+        "name": "Maybe",
+        "elements": [
+          {
+            "name": "is_some",
+            "type": {
+              "type-name": "Boolean"
+            }
+          },
+          {
+            "name": "value",
+            "type": {
+              "type-name": "Bytes",
+              "length": 32
+            }
+          }
         ]
       }
     }
+  ],
+  "contracts": [
   ]
 }

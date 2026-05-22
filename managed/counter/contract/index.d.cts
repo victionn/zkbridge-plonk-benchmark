@@ -1,6 +1,6 @@
 import type * as __compactRuntime from '@midnight-ntwrk/compact-runtime';
 
-export type Maybe<a> = { is_some: boolean; value: a };
+export type Maybe<T> = { is_some: boolean; value: T };
 
 export type Witnesses<T> = {
   operatorSecretKey(context: __compactRuntime.WitnessContext<Ledger, T>): [T, Maybe<Uint8Array>];
@@ -10,8 +10,6 @@ export type Witnesses<T> = {
 export type ImpureCircuits<T> = {
   proveOwnership(context: __compactRuntime.CircuitContext<T>): __compactRuntime.CircuitResults<T, boolean>;
   burnAsset(context: __compactRuntime.CircuitContext<T>): __compactRuntime.CircuitResults<T, []>;
-  transferAsset(context: __compactRuntime.CircuitContext<T>,
-                newOwner_0: Uint8Array): __compactRuntime.CircuitResults<T, []>;
 }
 
 export type PureCircuits = {
@@ -20,8 +18,6 @@ export type PureCircuits = {
 export type Circuits<T> = {
   proveOwnership(context: __compactRuntime.CircuitContext<T>): __compactRuntime.CircuitResults<T, boolean>;
   burnAsset(context: __compactRuntime.CircuitContext<T>): __compactRuntime.CircuitResults<T, []>;
-  transferAsset(context: __compactRuntime.CircuitContext<T>,
-                newOwner_0: Uint8Array): __compactRuntime.CircuitResults<T, []>;
 }
 
 export type Ledger = {

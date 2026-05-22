@@ -1,0 +1,14 @@
+{"level":30,"time":1779431352122,"pid":31360,"hostname":"jintangz","msg":"Wallet address: mn_shield-addr_undeployed1mjngjmnlutcq50trhcsk3hugvt9wyjnhq3c7prryd5nqmvtzva0sxqpvzkdy4k9u7eyffff53cge62tqylevq3wqps86tdjuahsquwvucsy9kffv"}
+{"level":30,"time":1779431352126,"pid":31360,"hostname":"jintangz","msg":"Waiting for tDUST funds…"}
+{"level":30,"time":1779431352142,"pid":31360,"hostname":"jintangz","msg":"Syncing — backend lag: 0, wallet lag: 0, txs=0"}
+{"level":30,"time":1779431364172,"pid":31360,"hostname":"jintangz","msg":"Syncing — backend lag: 0, wallet lag: 0, txs=1"}
+{"level":30,"time":1779431364173,"pid":31360,"hostname":"jintangz","msg":"Wallet balance: 25000000000000000 tDUST"}
+{"level":30,"time":1779431364193,"pid":31360,"hostname":"jintangz","msg":"[BENCH] constructor — iteration 0"}
+{"level":30,"time":1779431364238,"pid":31360,"hostname":"jintangz","msg":"[BENCH] proof-server call starting (method=proveTx)"}
+{"level":30,"time":1779431364276,"pid":31360,"hostname":"jintangz","msg":"[BENCH] proof-server call done: 37.0 ms"}
+{"level":30,"time":1779431371840,"pid":31360,"hostname":"jintangz","msg":"[BENCH] wallet.proveTransaction done: 7493.4 ms"}
+{"level":30,"time":1779431390291,"pid":31360,"hostname":"jintangz","msg":"[BENCH] constructor done — total=26098 ms"}
+{"level":30,"time":1779431390292,"pid":31360,"hostname":"jintangz","msg":"Deployed at: 0200c0dc582d3a4c202dfae107074a291882e110e3e9c84ebc8b69f7ddff41317da8"}
+{"level":30,"time":1779431390349,"pid":31360,"hostname":"jintangz","msg":"Joined contract at: 0200c0dc582d3a4c202dfae107074a291882e110e3e9c84ebc8b69f7ddff41317da8"}
+{"level":30,"time":1779431390349,"pid":31360,"hostname":"jintangz","msg":"[BENCH] proveOwnership — iteration 0"}
+{"level":40,"time":1779431390400,"pid":31360,"hostname":"jintangz","msg":"proveOwnership tx failed after proof (expected): Error: ENOENT: no such file or directory, open 'C:\\Users\\jinta\\Desktop\\zk-bench\\managed\\counter\\zkir\\proveOwnership.bzkir'"}

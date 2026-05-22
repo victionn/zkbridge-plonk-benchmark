@@ -1,0 +1,28 @@
+services:
+  proof-server:
+    container_name: 'zk-bench-proof-server'
+    image: "midnightnetwork/proof-server:4.0.0"
+    command: ["midnight-proof-server", "--network", "undeployed"]
+    ports:
+      - "6300:6300"
+    environment:
+      RUST_BACKTRACE: "full"
+  indexer:
+    container_name: 'zk-bench-indexer'
+    image: 'midnightntwrk/indexer-standalone:2.1.1'
+    ports:
+      - "8088:8088"
+    environment:
+      RUST_LOG: "info"
+      APP__INFRA__SECRET: "303132333435363738393031323334353637383930313233343536373839303132"
+      APP__INFRA__NODE__URL: "ws://node:9944"
+    depends_on:
+      node:
+        condition: service_started
+  node:
+    image: 'midnightnetwork/midnight-node:0.12.0'
+    container_name: 'zk-bench-node'
+    ports:
+      - "9944:9944"
+    environment:
+      CFG_PRESET: "dev"

@@ -1,0 +1,8 @@
+{"level":30,"time":1779428080767,"pid":35012,"hostname":"jintangz","msg":"Wallet address: mn_shield-addr_undeployed1e269dslxvsfrjke9ypsl5rjn573y4mcscgv243kq8jl540dtkrvsxq9pa7zj7env2rh8ms9ezjqd0wsukwhpck4p7qtr3qsn8ak429xyhvdqhpzr"}
+{"level":30,"time":1779428080770,"pid":35012,"hostname":"jintangz","msg":"Waiting for tDUST funds…"}
+{"level":30,"time":1779428080775,"pid":35012,"hostname":"jintangz","msg":"Syncing — backend lag: 0, wallet lag: 0, txs=0"}
+{"level":30,"time":1779428092790,"pid":35012,"hostname":"jintangz","msg":"Syncing — backend lag: 55, wallet lag: 0, txs=0"}
+{"level":30,"time":1779428104794,"pid":35012,"hostname":"jintangz","msg":"Syncing — backend lag: 55, wallet lag: 0, txs=0"}
+{"level":30,"time":1779428116789,"pid":35012,"hostname":"jintangz","msg":"Syncing — backend lag: 55, wallet lag: 0, txs=0"}
+{"level":30,"time":1779428128788,"pid":35012,"hostname":"jintangz","msg":"Syncing — backend lag: 55, wallet lag: 0, txs=0"}
+{"level":30,"time":1779428140803,"pid":35012,"hostname":"jintangz","msg":"Syncing — backend lag: 55, wallet lag: 0, txs=0"}

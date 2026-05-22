@@ -5,9 +5,12 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "bench": "vitest run --reporter=verbose 2>&1 | tee logs/bench-$(date +%Y%m%dT%H%M%S).log",
+    "get-address": "node --experimental-specifier-resolution=node --loader ts-node/esm src/get-address.ts",
+    "bench": "vitest run --reporter=verbose",
     "bench:watch": "vitest --reporter=verbose",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+"fund-wallet": "vitest run --reporter=verbose src/fund-wallet.test.ts",
+    "inspect-wallet": "node --experimental-specifier-resolution=node --loader ts-node/esm src/inspect-wallet.ts"
   },
   "dependencies": {
     "@midnight-ntwrk/compact-runtime": "^0.8.1",
@@ -37,4 +40,5 @@
     "vitest": "^3.2.0"
   },
   "packageManager": "yarn@1.22.22"
+  
 }
