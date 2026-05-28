@@ -1,0 +1,83 @@
+pragma language_version >= 0.15;
+
+import CompactStandardLibrary;
+
+export { Maybe }
+
+// public state
+
+// Define the PolicyID as a CardanoUTXO
+export ledger policyID: Bytes<33>;
+
+
+// Define the AssetID as a CardanoUnitID
+export ledger assetID: Bytes<60>;
+
+// Define the AssetName with a zk prefix
+export ledger assetName: Opaque<"string">;
+
+// Define the Asset Amount
+export ledger assetAmount: Uint<32>;
+
+// Define whether the asset is expired
+export ledger assetExpired: Boolean;
+
+export ledger metadata: Map<Bytes<32>, Bytes<32>>;
+
+export ledger operator: Bytes<32>;
+
+export ledger assetOwner: Bytes<32>;
+
+constructor(policy: Bytes<33>, asset: Bytes<60>, name: Opaque<"string">, amount: Uint<32>, owner: Bytes<32>) {
+  const key = operatorSecretKey();
+
+  assert (key.is_some, "Operator Secret Key not set");
+
+  operator = disclose(publicKey(key.value, pad(32, "operator:pk:")));
+  
+
+  policyID = disclose(policy);
+  assetID = disclose(asset);
+  assetName = disclose(name);
+  assetAmount = disclose(amount);
+
+  assetExpired = false;
+
+  assetOwner = disclose(owner);
+}
+
+circuit publicKey(sk: Bytes<32>, _prefix: Bytes<32>): Bytes<32> {
+  return persistentHash<Vector<2, Bytes<32>>>(
+    [_prefix, sk]);
+}
+
+
+witness operatorSecretKey(): Maybe<Bytes<32>>;
+
+export circuit proveOwnership(): Boolean {
+  const key = assetOwnerSecretKey();
+
+  assert (key.is_some, "Asset Owner Secret Key not set");
+  assert (assetExpired == false, "Asset Expired");
+
+  const owner = disclose(publicKey(key.value, pad(32, "assetOwner:pk:")));
+
+  assert (owner == assetOwner, "Not Owner");
+
+  return true;
+}
+
+export circuit burnAsset(): [] {
+  const key = operatorSecretKey();
+
+  assert (key.is_some, "Operator Secret Key not set");
+
+  const operatorKey = disclose(publicKey(key.value, pad(32, "operator:pk:")));
+
+  assert (operator == operatorKey, "Operator Not found");
+
+  assetExpired = true;
+}
+
+
+witness assetOwnerSecretKey(): Maybe<Bytes<32>>;

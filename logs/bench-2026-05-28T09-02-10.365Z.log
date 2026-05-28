@@ -1,0 +1,28 @@
+{"level":30,"time":1779958930437,"pid":23124,"hostname":"jintangz","msg":"Wallet address: mn_shield-addr_undeployed1mjngjmnlutcq50trhcsk3hugvt9wyjnhq3c7prryd5nqmvtzva0sxqpvzkdy4k9u7eyffff53cge62tqylevq3wqps86tdjuahsquwvucsy9kffv"}
+{"level":30,"time":1779958930440,"pid":23124,"hostname":"jintangz","msg":"Waiting for tDUST funds…"}
+{"level":30,"time":1779958930445,"pid":23124,"hostname":"jintangz","msg":"Syncing — backend lag: 0, wallet lag: 0, txs=0"}
+{"level":30,"time":1779958942489,"pid":23124,"hostname":"jintangz","msg":"Syncing — backend lag: 0, wallet lag: 0, txs=28"}
+{"level":30,"time":1779958942490,"pid":23124,"hostname":"jintangz","msg":"Wallet balance: 24999999985379073 tDUST"}
+{"level":30,"time":1779958942510,"pid":23124,"hostname":"jintangz","msg":"[BENCH] constructor — iteration 0"}
+{"level":30,"time":1779958942566,"pid":23124,"hostname":"jintangz","msg":"[BENCH] proof-server call starting (method=proveTx)"}
+{"level":30,"time":1779958942599,"pid":23124,"hostname":"jintangz","msg":"[BENCH] proof-server call done: 31.8 ms"}
+{"level":30,"time":1779958950542,"pid":23124,"hostname":"jintangz","msg":"[BENCH] wallet.proveTransaction done: 7870.3 ms"}
+{"level":30,"time":1779958969964,"pid":23124,"hostname":"jintangz","msg":"[BENCH] constructor done — total=27454 ms"}
+{"level":30,"time":1779958969964,"pid":23124,"hostname":"jintangz","msg":"Deployed at: 02006b21ed36e90621bbce61bb06b5a1e67ca104259190c6f44ab2a79fec0affb805"}
+{"level":30,"time":1779958970034,"pid":23124,"hostname":"jintangz","msg":"Joined contract at: 02006b21ed36e90621bbce61bb06b5a1e67ca104259190c6f44ab2a79fec0affb805"}
+{"level":30,"time":1779958970035,"pid":23124,"hostname":"jintangz","msg":"[BENCH] proveOwnership — iteration 0"}
+{"level":30,"time":1779958970101,"pid":23124,"hostname":"jintangz","msg":"[BENCH] proof-server call starting (method=proveTx)"}
+{"level":30,"time":1779958972995,"pid":23124,"hostname":"jintangz","msg":"[BENCH] proof-server call done: 2893.0 ms"}
+{"level":30,"time":1779958972995,"pid":23124,"hostname":"jintangz","msg":"[BENCH] proveOwnership proof done — 2893 ms"}
+{"level":30,"time":1779958980895,"pid":23124,"hostname":"jintangz","msg":"[BENCH] wallet.proveTransaction done: 7833.2 ms"}
+{"level":30,"time":1779959000275,"pid":23124,"hostname":"jintangz","msg":"[BENCH] deploying contract (setup — not timed)"}
+{"level":30,"time":1779959000287,"pid":23124,"hostname":"jintangz","msg":"[BENCH] proof-server call starting (method=proveTx)"}
+{"level":30,"time":1779959000297,"pid":23124,"hostname":"jintangz","msg":"[BENCH] proof-server call done: 9.1 ms"}
+{"level":30,"time":1779959008143,"pid":23124,"hostname":"jintangz","msg":"[BENCH] wallet.proveTransaction done: 7784.0 ms"}
+{"level":30,"time":1779959024458,"pid":23124,"hostname":"jintangz","msg":"Setup contract deployed at: 020064d69940a82341d40a2f9d0eb13aeaf1905e9c66aa98feed8417945c57f629ac"}
+{"level":30,"time":1779959024512,"pid":23124,"hostname":"jintangz","msg":"Joined contract at: 020064d69940a82341d40a2f9d0eb13aeaf1905e9c66aa98feed8417945c57f629ac"}
+{"level":30,"time":1779959024512,"pid":23124,"hostname":"jintangz","msg":"[BENCH] burnAsset — iteration 0"}
+{"level":30,"time":1779959024551,"pid":23124,"hostname":"jintangz","msg":"[BENCH] proof-server call starting (method=proveTx)"}
+{"level":30,"time":1779959027452,"pid":23124,"hostname":"jintangz","msg":"[BENCH] proof-server call done: 2901.3 ms"}
+{"level":30,"time":1779959027452,"pid":23124,"hostname":"jintangz","msg":"[BENCH] burnAsset proof done — 2901 ms"}
+{"level":30,"time":1779959035269,"pid":23124,"hostname":"jintangz","msg":"[BENCH] wallet.proveTransaction done: 7758.3 ms"}

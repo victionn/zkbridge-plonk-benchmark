@@ -1,0 +1,9 @@
+{"level":30,"time":1779947086538,"pid":18404,"hostname":"jintangz","msg":"Wallet address: mn_shield-addr_undeployed1mjngjmnlutcq50trhcsk3hugvt9wyjnhq3c7prryd5nqmvtzva0sxqpvzkdy4k9u7eyffff53cge62tqylevq3wqps86tdjuahsquwvucsy9kffv"}
+{"level":30,"time":1779947086541,"pid":18404,"hostname":"jintangz","msg":"Waiting for tDUST funds…"}
+{"level":30,"time":1779947086549,"pid":18404,"hostname":"jintangz","msg":"Syncing — backend lag: 0, wallet lag: 0, txs=0"}
+{"level":30,"time":1779947098645,"pid":18404,"hostname":"jintangz","msg":"Syncing — backend lag: 0, wallet lag: 0, txs=57"}
+{"level":30,"time":1779947098646,"pid":18404,"hostname":"jintangz","msg":"Wallet balance: 24999999965183147 tDUST"}
+{"level":30,"time":1779947098668,"pid":18404,"hostname":"jintangz","msg":"[BENCH] constructor — iteration 0"}
+{"level":30,"time":1779947098715,"pid":18404,"hostname":"jintangz","msg":"[BENCH] proof-server call starting (method=proveTx)"}
+{"level":30,"time":1779947098741,"pid":18404,"hostname":"jintangz","msg":"[BENCH] proof-server call done: 26.5 ms"}
+{"level":30,"time":1779947106804,"pid":18404,"hostname":"jintangz","msg":"[BENCH] wallet.proveTransaction done: 7983.8 ms"}

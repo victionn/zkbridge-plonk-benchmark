@@ -1,0 +1,21 @@
+{"level":30,"time":1779947156893,"pid":36452,"hostname":"jintangz","msg":"Wallet address: mn_shield-addr_undeployed1mjngjmnlutcq50trhcsk3hugvt9wyjnhq3c7prryd5nqmvtzva0sxqpvzkdy4k9u7eyffff53cge62tqylevq3wqps86tdjuahsquwvucsy9kffv"}
+{"level":30,"time":1779947156896,"pid":36452,"hostname":"jintangz","msg":"Waiting for tDUST funds…"}
+{"level":30,"time":1779947156912,"pid":36452,"hostname":"jintangz","msg":"Syncing — backend lag: 0, wallet lag: 0, txs=0"}
+{"level":30,"time":1779947168948,"pid":36452,"hostname":"jintangz","msg":"Syncing — backend lag: 0, wallet lag: 0, txs=59"}
+{"level":30,"time":1779947168949,"pid":36452,"hostname":"jintangz","msg":"Wallet balance: 24999999963374670 tDUST"}
+{"level":30,"time":1779947168973,"pid":36452,"hostname":"jintangz","msg":"[BENCH] constructor — iteration 0"}
+{"level":30,"time":1779947169019,"pid":36452,"hostname":"jintangz","msg":"[BENCH] proof-server call starting (method=proveTx)"}
+{"level":30,"time":1779947169046,"pid":36452,"hostname":"jintangz","msg":"[BENCH] proof-server call done: 25.9 ms"}
+{"level":30,"time":1779947175992,"pid":36452,"hostname":"jintangz","msg":"[BENCH] wallet.proveTransaction done: 6876.6 ms"}
+{"level":30,"time":1779947192399,"pid":36452,"hostname":"jintangz","msg":"[BENCH] constructor done — total=23426 ms"}
+{"level":30,"time":1779947192400,"pid":36452,"hostname":"jintangz","msg":"Deployed at: 0200af2b1328df3520b045853bb0429243136ad7327e21aba5bbd78eceb5bd073791"}
+{"level":30,"time":1779947192400,"pid":36452,"hostname":"jintangz","msg":"[BENCH] constructor — iteration 1"}
+{"level":30,"time":1779947192415,"pid":36452,"hostname":"jintangz","msg":"[BENCH] proof-server call starting (method=proveTx)"}
+{"level":30,"time":1779947192423,"pid":36452,"hostname":"jintangz","msg":"[BENCH] proof-server call done: 7.3 ms"}
+{"level":30,"time":1779947200408,"pid":36452,"hostname":"jintangz","msg":"[BENCH] wallet.proveTransaction done: 7861.2 ms"}
+{"level":30,"time":1779947215833,"pid":36452,"hostname":"jintangz","msg":"[BENCH] constructor done — total=23432 ms"}
+{"level":30,"time":1779947215833,"pid":36452,"hostname":"jintangz","msg":"Deployed at: 0200620e4c093140889e3f3e63f89302163bc36c970f32da9f205864702b0b1366ce"}
+{"level":30,"time":1779947215833,"pid":36452,"hostname":"jintangz","msg":"[BENCH] constructor — iteration 2"}
+{"level":30,"time":1779947215851,"pid":36452,"hostname":"jintangz","msg":"[BENCH] proof-server call starting (method=proveTx)"}
+{"level":30,"time":1779947215861,"pid":36452,"hostname":"jintangz","msg":"[BENCH] proof-server call done: 9.9 ms"}
+{"level":30,"time":1779947222886,"pid":36452,"hostname":"jintangz","msg":"[BENCH] wallet.proveTransaction done: 6904.5 ms"}

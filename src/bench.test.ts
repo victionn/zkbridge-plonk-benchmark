@@ -199,10 +199,11 @@ describe('ZK Proof Generation Benchmark', () => {
         { assetOwnerSecretKey: owner.secretKey },  // real secret key
       );
 
-      for (let i = 0; i < ITERATIONS; i++) {
-        console.log(`  [proveOwnership] iteration ${i + 1}/${ITERATIONS}`);
-        await api.proveOwnershipProofOnly(ownerContract, i);
-      }
+    for (let i = 0; i < ITERATIONS; i++) {
+      console.log(`  [proveOwnership] iteration ${i + 1}/${ITERATIONS}`);
+      await api.proveOwnershipProofOnly(ownerContract, i);
+      await api.waitForBackgroundTasks();
+    }
     });
   });
 
@@ -212,7 +213,8 @@ describe('ZK Proof Generation Benchmark', () => {
   // timings. The real owner public key is used to keep deployment realistic.
   // Only the burn proof itself is timed and recorded.
   describe('3 · burnAsset (operator burns zkAsset)', () => {
-    it(`runs ${ITERATIONS} iterations`, async () => {
+it(`runs ${ITERATIONS} iterations`, async () => {
+      await api.waitForBackgroundTasks();
       const assetID = buildAssetID();
 
       for (let i = 0; i < ITERATIONS; i++) {
@@ -237,6 +239,7 @@ describe('ZK Proof Generation Benchmark', () => {
 
         console.log(`  [burnAsset] iteration ${i + 1}/${ITERATIONS} — timing burn proof…`);
         await api.burnAssetProofOnly(operatorContract, i);
+        await api.waitForBackgroundTasks();  // ← add this
       }
     });
   });

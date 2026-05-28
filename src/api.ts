@@ -167,7 +167,11 @@ export const joinContract = async (
 // ---------------------------------------------------------------------------
 
 let proofSignal: ((ms: number) => void) | null = null;
+let backgroundTask: Promise<unknown> | null = null;
 
+export function waitForBackgroundTasks(): Promise<void> {
+  return backgroundTask ? backgroundTask.then(() => {}, () => {}) : Promise.resolve();
+}
 /** Returns a promise that resolves with the proof time when the next proof completes. */
 export function nextProofDone(): Promise<number> {
   return new Promise((resolve) => {
@@ -191,10 +195,9 @@ export const proveOwnershipProofOnly = async (
   logger.info(`[BENCH] proveOwnership — iteration ${iteration}`);
   const proofDone = nextProofDone();
 
-  contract.callTx.proveOwnership().catch((e) => {
+backgroundTask = contract.callTx.proveOwnership().catch((e) => {
     logger.warn(`proveOwnership tx failed after proof (expected): ${e}`);
   });
-
   const ms = await proofDone;
   timings.push({
     operation: 'proveOwnership',
@@ -216,9 +219,9 @@ export const burnAssetProofOnly = async (
   logger.info(`[BENCH] burnAsset — iteration ${iteration}`);
   const proofDone = nextProofDone();
 
-  contract.callTx.burnAsset().catch((e) => {
-    logger.warn(`burnAsset tx failed after proof (expected): ${e}`);
-  });
+backgroundTask = contract.callTx.burnAsset().catch((e) => {
+  logger.warn(`burnAsset tx failed after proof (expected): ${e}`);
+});
 
   const ms = await proofDone;
   timings.push({
