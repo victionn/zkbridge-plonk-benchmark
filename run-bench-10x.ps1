@@ -1,4 +1,4 @@
-# run-bench-10x.ps1
+## run-bench-10x.ps1
 # Runs the zk-bench suite 10 times, 1 iteration each, as independent
 # process invocations. Each run wipes the wallet level-db so it re-syncs
 # from a clean state, and each run writes its own timestamped log to .\logs\.
@@ -48,6 +48,4 @@ Write-Host "Logs are in $projectRoot\logs\" -ForegroundColor Green
 
 #geoogeo 
 
-#adfwa
-
-#cakjwkj
+#wadw
