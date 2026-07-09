@@ -49,3 +49,4 @@ Write-Host "Logs are in $projectRoot\logs\" -ForegroundColor Green
 #geoogeo 
 
 #wadw
+#ee
