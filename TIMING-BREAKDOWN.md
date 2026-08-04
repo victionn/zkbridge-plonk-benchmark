@@ -71,6 +71,30 @@ and FFT butterflies parallelize across cores):
 | Quotient polynomial  | Coset FFTs over extended domain 4n = 32,768 (max_deg=5), vanishing division, quotient commitments | ~25–35% |
 | KZG openings         | 60 column queries batched into opening proofs               | ~10%            |
 
+## Cold vs. warm proving (3-iteration run, `logs/bench-2026-08-04T10-17-35.854Z.log`)
+
+The **first** proof of each circuit is ~35% slower than subsequent ones:
+
+| Iteration       | proveOwnership | burnAsset |
+|-----------------|----------------|-----------|
+| 1 (cold)        | 1,968 ms       | 1,951 ms  |
+| 2 (warm)        | 1,429 ms       | 1,453 ms  |
+| 3 (warm)        | 1,395 ms       | (run aborted — see below) |
+
+The warm-up is **per circuit**, not per k: burnAsset's first proof was still
+cold (1,951 ms) even though proveOwnership had already proven three k=13
+proofs. The ~500 ms delta is one-time processing of the uploaded 5.5 MB
+prover key (deserialization/expansion), cached server-side by content
+thereafter. Steady-state PLONK cost is therefore **~1.4 s** per proof on this
+machine, ~1.95 s cold. The Zswap wrapper proof shows the same effect once
+globally (first: 5.7 s, thereafter: 4.0–4.6 s).
+
+Note: at `BENCH_ITERATIONS=3` the run aborted on the final burnAsset proof —
+the proof server rejected the request after ~34 blocks of accumulated chain
+state and the proof-only wait then hung until the vitest timeout (68 min).
+This is the instability class the README works around by running
+`BENCH_ITERATIONS=1` with a stack restart per run.
+
 ## Circuit model (from `zkir mock-compile -v`)
 
 ```
