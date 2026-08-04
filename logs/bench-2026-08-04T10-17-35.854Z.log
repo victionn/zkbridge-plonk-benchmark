@@ -1,0 +1,70 @@
+{"level":30,"time":1785838655884,"pid":38164,"hostname":"Jintangs-MacBook-Pro.local","msg":"Wallet address: mn_shield-addr_undeployed1mjngjmnlutcq50trhcsk3hugvt9wyjnhq3c7prryd5nqmvtzva0sxqpvzkdy4k9u7eyffff53cge62tqylevq3wqps86tdjuahsquwvucsy9kffv"}
+{"level":30,"time":1785838655886,"pid":38164,"hostname":"Jintangs-MacBook-Pro.local","msg":"Waiting for tDUST funds…"}
+{"level":30,"time":1785838655892,"pid":38164,"hostname":"Jintangs-MacBook-Pro.local","msg":"Syncing — backend lag: 0, wallet lag: 0, txs=0"}
+{"level":30,"time":1785838667942,"pid":38164,"hostname":"Jintangs-MacBook-Pro.local","msg":"Syncing — backend lag: 0, wallet lag: 0, txs=1"}
+{"level":30,"time":1785838667942,"pid":38164,"hostname":"Jintangs-MacBook-Pro.local","msg":"Wallet balance: 25000000000000000 tDUST"}
+{"level":30,"time":1785838667959,"pid":38164,"hostname":"Jintangs-MacBook-Pro.local","msg":"[BENCH] constructor — iteration 0"}
+{"level":30,"time":1785838667987,"pid":38164,"hostname":"Jintangs-MacBook-Pro.local","msg":"[BENCH] proof-server call starting (method=proveTx)"}
+{"level":30,"time":1785838668001,"pid":38164,"hostname":"Jintangs-MacBook-Pro.local","msg":"[BENCH] proof-server call done: 13.9 ms"}
+{"level":30,"time":1785838673731,"pid":38164,"hostname":"Jintangs-MacBook-Pro.local","msg":"[BENCH] wallet.proveTransaction done: 5689.4 ms"}
+{"level":30,"time":1785838687908,"pid":38164,"hostname":"Jintangs-MacBook-Pro.local","msg":"[BENCH] constructor done — total=19948 ms"}
+{"level":30,"time":1785838687908,"pid":38164,"hostname":"Jintangs-MacBook-Pro.local","msg":"Deployed at: 02008211cb12c16d14c61c54f088d412a22d0cb5d195350ce89adcf24bbdf634a0bf"}
+{"level":30,"time":1785838687908,"pid":38164,"hostname":"Jintangs-MacBook-Pro.local","msg":"[BENCH] constructor — iteration 1"}
+{"level":30,"time":1785838687919,"pid":38164,"hostname":"Jintangs-MacBook-Pro.local","msg":"[BENCH] proof-server call starting (method=proveTx)"}
+{"level":30,"time":1785838687926,"pid":38164,"hostname":"Jintangs-MacBook-Pro.local","msg":"[BENCH] proof-server call done: 7.0 ms"}
+{"level":30,"time":1785838692268,"pid":38164,"hostname":"Jintangs-MacBook-Pro.local","msg":"[BENCH] wallet.proveTransaction done: 4296.1 ms"}
+{"level":30,"time":1785838711429,"pid":38164,"hostname":"Jintangs-MacBook-Pro.local","msg":"[BENCH] constructor done — total=23520 ms"}
+{"level":30,"time":1785838711429,"pid":38164,"hostname":"Jintangs-MacBook-Pro.local","msg":"Deployed at: 0200c81ef2286232fd5e2acf5e8cbff09648b59fa27144c0a2449d7c7d3bbe553ebd"}
+{"level":30,"time":1785838711430,"pid":38164,"hostname":"Jintangs-MacBook-Pro.local","msg":"[BENCH] constructor — iteration 2"}
+{"level":30,"time":1785838711443,"pid":38164,"hostname":"Jintangs-MacBook-Pro.local","msg":"[BENCH] proof-server call starting (method=proveTx)"}
+{"level":30,"time":1785838711451,"pid":38164,"hostname":"Jintangs-MacBook-Pro.local","msg":"[BENCH] proof-server call done: 7.9 ms"}
+{"level":30,"time":1785838715524,"pid":38164,"hostname":"Jintangs-MacBook-Pro.local","msg":"[BENCH] wallet.proveTransaction done: 4023.1 ms"}
+{"level":30,"time":1785838730656,"pid":38164,"hostname":"Jintangs-MacBook-Pro.local","msg":"[BENCH] constructor done — total=19226 ms"}
+{"level":30,"time":1785838730657,"pid":38164,"hostname":"Jintangs-MacBook-Pro.local","msg":"Deployed at: 020078f8afc73d679cadab0219638861697446912bc918b4609fe45a29721146fa94"}
+{"level":30,"time":1785838730681,"pid":38164,"hostname":"Jintangs-MacBook-Pro.local","msg":"Joined contract at: 020078f8afc73d679cadab0219638861697446912bc918b4609fe45a29721146fa94"}
+{"level":30,"time":1785838730681,"pid":38164,"hostname":"Jintangs-MacBook-Pro.local","msg":"[BENCH] proveOwnership — iteration 0"}
+{"level":30,"time":1785838730710,"pid":38164,"hostname":"Jintangs-MacBook-Pro.local","msg":"[BENCH] proof-server call starting (method=proveTx)"}
+{"level":30,"time":1785838732678,"pid":38164,"hostname":"Jintangs-MacBook-Pro.local","msg":"[BENCH] proof-server call done: 1968.3 ms"}
+{"level":30,"time":1785838732678,"pid":38164,"hostname":"Jintangs-MacBook-Pro.local","msg":"[BENCH] proveOwnership proof done — 1968 ms"}
+{"level":30,"time":1785838736821,"pid":38164,"hostname":"Jintangs-MacBook-Pro.local","msg":"[BENCH] wallet.proveTransaction done: 4097.2 ms"}
+{"level":30,"time":1785838754036,"pid":38164,"hostname":"Jintangs-MacBook-Pro.local","msg":"[BENCH] proveOwnership — iteration 1"}
+{"level":30,"time":1785838754050,"pid":38164,"hostname":"Jintangs-MacBook-Pro.local","msg":"[BENCH] proof-server call starting (method=proveTx)"}
+{"level":30,"time":1785838755479,"pid":38164,"hostname":"Jintangs-MacBook-Pro.local","msg":"[BENCH] proof-server call done: 1428.7 ms"}
+{"level":30,"time":1785838755479,"pid":38164,"hostname":"Jintangs-MacBook-Pro.local","msg":"[BENCH] proveOwnership proof done — 1429 ms"}
+{"level":30,"time":1785838759671,"pid":38164,"hostname":"Jintangs-MacBook-Pro.local","msg":"[BENCH] wallet.proveTransaction done: 4129.2 ms"}
+{"level":30,"time":1785838777842,"pid":38164,"hostname":"Jintangs-MacBook-Pro.local","msg":"[BENCH] proveOwnership — iteration 2"}
+{"level":30,"time":1785838777849,"pid":38164,"hostname":"Jintangs-MacBook-Pro.local","msg":"[BENCH] proof-server call starting (method=proveTx)"}
+{"level":30,"time":1785838779245,"pid":38164,"hostname":"Jintangs-MacBook-Pro.local","msg":"[BENCH] proof-server call done: 1395.0 ms"}
+{"level":30,"time":1785838779245,"pid":38164,"hostname":"Jintangs-MacBook-Pro.local","msg":"[BENCH] proveOwnership proof done — 1395 ms"}
+{"level":30,"time":1785838783426,"pid":38164,"hostname":"Jintangs-MacBook-Pro.local","msg":"[BENCH] wallet.proveTransaction done: 4119.0 ms"}
+{"level":30,"time":1785838802582,"pid":38164,"hostname":"Jintangs-MacBook-Pro.local","msg":"[BENCH] deploying contract (setup — not timed)"}
+{"level":30,"time":1785838802596,"pid":38164,"hostname":"Jintangs-MacBook-Pro.local","msg":"[BENCH] proof-server call starting (method=proveTx)"}
+{"level":30,"time":1785838802604,"pid":38164,"hostname":"Jintangs-MacBook-Pro.local","msg":"[BENCH] proof-server call done: 7.8 ms"}
+{"level":30,"time":1785838806746,"pid":38164,"hostname":"Jintangs-MacBook-Pro.local","msg":"[BENCH] wallet.proveTransaction done: 4092.7 ms"}
+{"level":30,"time":1785838825974,"pid":38164,"hostname":"Jintangs-MacBook-Pro.local","msg":"Setup contract deployed at: 02004e12f3e4e319d965bdc4c71f2f554d897511df20c8b2b1b9a884213b2c3bd22d"}
+{"level":30,"time":1785838825982,"pid":38164,"hostname":"Jintangs-MacBook-Pro.local","msg":"Joined contract at: 02004e12f3e4e319d965bdc4c71f2f554d897511df20c8b2b1b9a884213b2c3bd22d"}
+{"level":30,"time":1785838825982,"pid":38164,"hostname":"Jintangs-MacBook-Pro.local","msg":"[BENCH] burnAsset — iteration 0"}
+{"level":30,"time":1785838825989,"pid":38164,"hostname":"Jintangs-MacBook-Pro.local","msg":"[BENCH] proof-server call starting (method=proveTx)"}
+{"level":30,"time":1785838827940,"pid":38164,"hostname":"Jintangs-MacBook-Pro.local","msg":"[BENCH] proof-server call done: 1951.1 ms"}
+{"level":30,"time":1785838827941,"pid":38164,"hostname":"Jintangs-MacBook-Pro.local","msg":"[BENCH] burnAsset proof done — 1951 ms"}
+{"level":30,"time":1785838832038,"pid":38164,"hostname":"Jintangs-MacBook-Pro.local","msg":"[BENCH] wallet.proveTransaction done: 4044.0 ms"}
+{"level":30,"time":1785838850195,"pid":38164,"hostname":"Jintangs-MacBook-Pro.local","msg":"[BENCH] deploying contract (setup — not timed)"}
+{"level":30,"time":1785838850208,"pid":38164,"hostname":"Jintangs-MacBook-Pro.local","msg":"[BENCH] proof-server call starting (method=proveTx)"}
+{"level":30,"time":1785838850216,"pid":38164,"hostname":"Jintangs-MacBook-Pro.local","msg":"[BENCH] proof-server call done: 7.9 ms"}
+{"level":30,"time":1785838854378,"pid":38164,"hostname":"Jintangs-MacBook-Pro.local","msg":"[BENCH] wallet.proveTransaction done: 4109.7 ms"}
+{"level":30,"time":1785838874537,"pid":38164,"hostname":"Jintangs-MacBook-Pro.local","msg":"Setup contract deployed at: 02000f94d26830aa000fc2292e95693fd0bb8ef4f25a112d1efd229e4fec8b0e5cb4"}
+{"level":30,"time":1785838874553,"pid":38164,"hostname":"Jintangs-MacBook-Pro.local","msg":"Joined contract at: 02000f94d26830aa000fc2292e95693fd0bb8ef4f25a112d1efd229e4fec8b0e5cb4"}
+{"level":30,"time":1785838874553,"pid":38164,"hostname":"Jintangs-MacBook-Pro.local","msg":"[BENCH] burnAsset — iteration 1"}
+{"level":30,"time":1785838874565,"pid":38164,"hostname":"Jintangs-MacBook-Pro.local","msg":"[BENCH] proof-server call starting (method=proveTx)"}
+{"level":30,"time":1785838876019,"pid":38164,"hostname":"Jintangs-MacBook-Pro.local","msg":"[BENCH] proof-server call done: 1453.1 ms"}
+{"level":30,"time":1785838876019,"pid":38164,"hostname":"Jintangs-MacBook-Pro.local","msg":"[BENCH] burnAsset proof done — 1453 ms"}
+{"level":30,"time":1785838880707,"pid":38164,"hostname":"Jintangs-MacBook-Pro.local","msg":"[BENCH] wallet.proveTransaction done: 4634.6 ms"}
+{"level":30,"time":1785838898865,"pid":38164,"hostname":"Jintangs-MacBook-Pro.local","msg":"[BENCH] deploying contract (setup — not timed)"}
+{"level":30,"time":1785838898923,"pid":38164,"hostname":"Jintangs-MacBook-Pro.local","msg":"[BENCH] proof-server call starting (method=proveTx)"}
+{"level":30,"time":1785838898930,"pid":38164,"hostname":"Jintangs-MacBook-Pro.local","msg":"[BENCH] proof-server call done: 6.1 ms"}
+{"level":30,"time":1785838903259,"pid":38164,"hostname":"Jintangs-MacBook-Pro.local","msg":"[BENCH] wallet.proveTransaction done: 4289.8 ms"}
+{"level":30,"time":1785838922431,"pid":38164,"hostname":"Jintangs-MacBook-Pro.local","msg":"Setup contract deployed at: 0200e7ffa8f102378bddc1c08d5f971aec99af612287fc96206da2d823c34ede848f"}
+{"level":30,"time":1785838922451,"pid":38164,"hostname":"Jintangs-MacBook-Pro.local","msg":"Joined contract at: 0200e7ffa8f102378bddc1c08d5f971aec99af612287fc96206da2d823c34ede848f"}
+{"level":30,"time":1785838922452,"pid":38164,"hostname":"Jintangs-MacBook-Pro.local","msg":"[BENCH] burnAsset — iteration 2"}
+{"level":30,"time":1785838922464,"pid":38164,"hostname":"Jintangs-MacBook-Pro.local","msg":"[BENCH] proof-server call starting (method=proveTx)"}
+{"level":40,"time":1785838922529,"pid":38164,"hostname":"Jintangs-MacBook-Pro.local","msg":"burnAsset tx failed after proof (expected): Error: Failed Proof Server response: url=\"http://127.0.0.1:6300/prove-tx\", code=\"400\", status=\"Bad Request\"\""}
