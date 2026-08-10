@@ -11,9 +11,16 @@ reference that you can reproduce (see [Reproducing this analysis](#reproducing-t
 |---|---|
 | This repo's proof server image | `midnightnetwork/proof-server:4.0.0` ([standalone.yml](standalone.yml) line 4) |
 | `midnightntwrk/midnight-ledger` (proof server source) | commit `272c25fcaabcd8f18951bd38a5dd7b0112e37d4a` (2026-08-07, workspace version 8.2.0-rc.1) |
-| `midnight-proofs` (PLONK/Halo2 fork) | 0.7.1 (crates.io, from midnight-ledger `Cargo.lock`) |
-| `midnight-circuits` (gadget stdlib) | 6.2.0 (crates.io) |
+| `midnight-zk-stdlib` (Relation → circuit wrapper, prove/verify API) | 1.2.0, sha256 `0bc88011d4ddf888e98f27d7aa3d787a6832c5146575a6994323a1d23a7059cc` |
+| `midnight-proofs` (PLONK/Halo2 fork) | 0.7.1, sha256 `b48f199fa4707df5dc443238cd260344f2ad369897fbdc559dacce19b43d2119` |
+| `midnight-circuits` (gadget library: SHA-256/Poseidon/JubJub chips) | 6.2.0, sha256 `704fd24d6cd9f348945dded9bf6c8ebc3d302be605b93a4ce80893a85cd17de2` |
+| `midnight-curves` (BLS12-381 + JubJub over `blst`) | 0.2.0, sha256 `71df41292a1fd7796bf6c0c6eff7ad717d628406a59a79240e68579716c3566a` |
 | Local SDK packages | see this repo's `yarn.lock` (`@midnight-ntwrk/*`) |
+
+The four crate checksums above are the exact `checksum` values in `midnight-ledger`'s
+`Cargo.lock` at the pinned commit, and match the tarballs published on crates.io
+(verified by download, see §4.5) — i.e. the sources analyzed in §2.6 are byte-for-byte
+what the proof server binary is built from.
 
 > Caveat: the pinned `midnight-ledger` commit is newer than the 4.0.0 image we run.
 > HEAD adds a `/prove` endpoint and marks `/prove-tx` deprecated, plus "dust" circuits.
@@ -193,19 +200,72 @@ commitment, re-proven in-circuit at `ir_vm.rs:816-834`).
    (`ir.rs:145-167`, tag `prover-key[v7](ir-source[v2])`).
 4. `ir.rs:136`: `midnight_zk_stdlib::prove::<_, TranscriptHash>(params, &pk, self, &pis, preproc, rng)`.
 
-The proof system (`midnight-proofs` 0.7.1 + `midnight-circuits` 6.2.0, from the
-[midnight-zk](https://github.com/midnightntwrk/midnight-zk) stack):
+The proof system parameters, as declared by the caller:
 
-- **Halo2 fork with KZG polynomial commitments over BLS12-381**
+- **KZG polynomial commitments over BLS12-381**
   (`transient-crypto/src/proofs.rs:22-24,81` — `ParamsKZG<Bls12>`, `midnight_curves::Bls12`).
 - **Fiat–Shamir transcript hash: Blake2b**
   (`proofs.rs:64` — `pub type TranscriptHash = blake2b_simd::State`).
-- Standard PLONK flow: commit witness columns → permutation & lookup arguments (lookups are
-  used by the SHA-256 chip) → evaluate at Blake2b-derived challenges → constant-size KZG
-  opening proof. Runtime is dominated by multi-scalar multiplications ∝ 2^k.
-  **This is `circuitProofMs`.**
 
-### 2.6 Zswap proofs and the response
+What happens inside that `prove` call is traced instruction-by-instruction in §2.6.
+Runtime is dominated by multi-scalar multiplications ∝ 2^k. **This is `circuitProofMs`.**
+
+### 2.6 Inside the PLONK engine — `midnight_zk_stdlib::prove`, pinned line-by-line
+
+All references below are into the published crates-io sources whose checksums match
+`midnight-ledger`'s `Cargo.lock` (see version table and §4.5).
+
+**Entry — `midnight-zk-stdlib-1.2.0/src/lib.rs:1745-1773` (`prove<R, H>`):**
+formats the public-input vector (`R::format_instance`), wraps the ZKIR relation in a
+`MidnightCircuit` with known instance+witness, and calls
+`BlstPLONK::<MidnightCircuit<R>>::prove::<H>` — a macro-generated PLONK facade
+(`src/utils/plonk_api.rs:88-129`) that initializes a `CircuitTranscript<Blake2b>`, calls
+`create_proof`, and finalizes the transcript into the proof bytes. Circuit size:
+`min_k()` = `k_from_circuit(...)` (`lib.rs:1299-1301`); `MidnightCircuit::new` also
+auto-sizes the range-check table (`max_bit_len`, `lib.rs:1270-1296`).
+
+**The prover — `midnight-proofs-0.7.1/src/plonk/prover.rs`.**
+`create_proof` (line 348) = trace generation + `finalise_proof`. Exact stage order, which
+is also the Fiat–Shamir transcript order:
+
+| # | Stage | Where |
+|---|---|---|
+| 1 | Hash verifying key into transcript | `prover.rs:99` |
+| 2 | Instance columns (committed-instances feature: commit + hash) | `prover.rs:103`, `36-56` |
+| 3 | Advice (witness) columns: synthesize per phase, blind, **commit (MSM)**, hash; per-phase challenges | `prover.rs:105`, `499-593` (commit written at 573) |
+| 4 | Challenge **θ** (lookup column separation) | `prover.rs:108` |
+| 5 | Lookup argument, part 1: permuted inputs/tables committed (classic halo2 permuted lookup — this is what the SHA-256 chip's spread tables use) | `prover.rs:110-135`, `plonk/lookup/prover.rs` |
+| 6 | Challenges **β, γ** | `prover.rs:138,141` |
+| 7 | **Permutation (copy-constraint) grand-product** commitments | `prover.rs:144-161`, `plonk/permutation/prover.rs` |
+| 8 | Lookup argument, part 2: grand-product commitments | `prover.rs:163-172` |
+| 9 | **Trash argument** (Midnight fork addition, not in upstream halo2): challenge + commitments — cheap "constraint dumpster" columns constrained as `(1-q)·trash`, degree ≥ 2 | `prover.rs:175-199`, `plonk/trash.rs:10-34` |
+| 10 | Vanishing argument: random blinding polynomial committed | `prover.rs:202` |
+| 11 | Challenge **y** (gate separation) | `prover.rs:205` |
+| 12 | **Quotient h(X)**: evaluate all gate/permutation/lookup/trash constraint polynomials over the extended domain, divide by the vanishing polynomial, commit in pieces | `prover.rs:267` (`compute_h_poly`), `plonk/evaluation.rs`, `prover.rs:280` |
+| 13 | Challenge **x**; write all polynomial evaluations at x (and ωx, ω⁻¹x… as needed) for advice, instance, fixed, permutation, lookups, trash | `prover.rs:282-324` |
+| 14 | **Multipoint opening**: challenges x₁,x₂ → aggregate per point-set (`q_polys`), build `f_poly` via Kate division, commit; x₃ → q-evals; x₄ → final aggregate; single KZG witness π = commit((final−v)/(X−x₃)) | `prover.rs:326-338` → `poly/kzg/mod.rs:100-188` (halo2-book multipoint opening, GWC-style single-quotient finish) |
+
+**The math backend:** every `commit` above is an MSM in
+`poly/kzg/msm.rs:111-125` (`msm_specific`) — it dispatches to **`blst`'s
+`G1Projective::multi_exp`** (via `midnight-curves` 0.2.0, a BLS12-381+JubJub wrapper over
+the `blst` C library) for sizes ≤ 2^19, else a batch-normalized `msm_best`. Blake2b
+transcript hashing of curve points / field elements:
+`transcript/implementors.rs:3-13,103-142`.
+
+**The gadgets (`midnight-circuits-6.2.0`):** the SHA-256 chip that dominates our
+circuits is `src/hash/sha256/sha256_chip.rs` — a spread-table design: a 3-column lookup
+table `(n, X, ~X)` where `~X` is the "spreaded" form (bits interleaved with zeros),
+with **2 parallel lookups per row** (file-header docs, lines 27-46; table at 100-104).
+This is why the lookup argument (stages 5/8) is present in our proofs at all. Poseidon
+(`transientHash`, communications commitment) is `src/hash/poseidon/poseidon_chip.rs`;
+JubJub embedded-curve ops are `src/ecc/`.
+
+**Verification path (for symmetry):** `midnight_zk_stdlib::verify` (`lib.rs:1777`) →
+`plonk/verifier.rs` + `poly/kzg/mod.rs:192` (`multi_prepare` → `DualMSM`) — the verifier
+reconstructs the same transcript, folds everything into two MSMs, and checks one pairing
+equation on BLS12-381.
+
+### 2.7 Zswap proofs and the response
 
 Coin offers in the same transaction (`prove.rs:158-174`) use the same machinery, but keys
 resolve to the built-in `midnight/zswap/spend|output` circuits downloaded at boot — no
@@ -216,7 +276,7 @@ upload needed. This is also what `wallet.proveTransaction()` hits: the wallet en
 Each `ProofPreimageVersioned::V2` is replaced with a `ProofVersioned::V2`, the proven
 transaction is re-serialized (`endpoints.rs:369-375`) and returned as the HTTP body.
 
-### 2.7 Verification (for completeness)
+### 2.8 Verification (for completeness)
 
 The 2.6 KB verifier key is embedded into on-chain contract state at deploy
 (`midnight-js-contracts/dist/index.mjs:254-262`). Nodes re-derive public inputs from the
@@ -324,3 +384,39 @@ curl http://127.0.0.1:6300/proof-versions  # supported proof versions (V2)
 Then run the benchmark as usual (`BENCH_WALLET_SEED=… yarn bench`) and correlate the
 server's `docker logs zk-bench-proof-server` output with `[BENCH] proof-server call
 starting/done` lines in this repo's logs.
+
+### 4.5 Pin the PLONK engine crates (§2.6 sources)
+
+The engine crates are published on crates.io; download the exact tarballs and verify
+their sha256 digests against `midnight-ledger`'s `Cargo.lock`:
+
+```bash
+cd midnight-ledger   # at commit 272c25fc (§4.1)
+mkdir -p /tmp/mn-crates && cd /tmp/mn-crates
+for c in midnight-proofs/0.7.1 midnight-circuits/6.2.0 midnight-zk-stdlib/1.2.0 midnight-curves/0.2.0; do
+  name=${c%/*}; ver=${c#*/}
+  curl -s -A 'research' "https://static.crates.io/crates/$name/$name-$ver.crate" -o "$name-$ver.crate"
+  shasum -a 256 "$name-$ver.crate"   # must equal the checksum in Cargo.lock
+  tar xzf "$name-$ver.crate"
+done
+```
+
+(Do not use the crates.io API endpoint for this — it rejects generic clients; the
+`static.crates.io` CDN serves the same content-addressed tarballs.)
+
+Key files to read, matching the stage table in §2.6:
+
+```
+midnight-zk-stdlib-1.2.0/src/lib.rs                  # prove (1745), verify (1777), min_k (1299), setup_vk/pk (1707/1727)
+midnight-zk-stdlib-1.2.0/src/utils/plonk_api.rs      # BlstPLONK facade (prove at 88)
+midnight-proofs-0.7.1/src/plonk/prover.rs            # create_proof (348), stage order (99-338)
+midnight-proofs-0.7.1/src/plonk/lookup/prover.rs     # permuted lookup argument
+midnight-proofs-0.7.1/src/plonk/permutation/prover.rs# copy-constraint grand product
+midnight-proofs-0.7.1/src/plonk/trash.rs             # Midnight's trash argument
+midnight-proofs-0.7.1/src/plonk/evaluation.rs        # quotient/h(X) evaluation engine
+midnight-proofs-0.7.1/src/poly/kzg/mod.rs            # multi_open (100), multi_prepare (191)
+midnight-proofs-0.7.1/src/poly/kzg/msm.rs            # msm_specific → blst multi_exp (111)
+midnight-proofs-0.7.1/src/transcript/implementors.rs # Blake2b transcript impls
+midnight-circuits-6.2.0/src/hash/sha256/sha256_chip.rs  # spread-table SHA-256 chip
+midnight-circuits-6.2.0/src/hash/poseidon/poseidon_chip.rs
+```
