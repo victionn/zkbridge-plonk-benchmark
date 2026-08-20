@@ -212,6 +212,9 @@ Runtime is dominated by multi-scalar multiplications ∝ 2^k. **This is `circuit
 
 ### 2.6 Inside the PLONK engine — `midnight_zk_stdlib::prove`, pinned line-by-line
 
+> A round-by-round walkthrough of the PLONK protocol itself, with verbatim code
+> snippets for every stage, is in [PLONK-PROVER-WALKTHROUGH.md](PLONK-PROVER-WALKTHROUGH.md).
+
 All references below are into the published crates-io sources whose checksums match
 `midnight-ledger`'s `Cargo.lock` (see version table and §4.5).
 
