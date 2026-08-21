@@ -1,7 +1,8 @@
 # The PLONK Prover, Round by Round — Annotated Source Walkthrough
 
 This is the "PLONK part" only: the proving protocol exactly as implemented in the crate
-our proof server is built from, with the real code for every round. All plumbing
+our proof server is built from, with the real code for every round **and a running toy
+example at the bottom of each round** so you can follow along with numbers. All plumbing
 (SDK, ZKIR, HTTP, worker pool) is covered separately in
 [PROOF-SERVER-INTERNALS.md](PROOF-SERVER-INTERNALS.md).
 
@@ -23,6 +24,55 @@ transcript so far — that is what turns the interactive protocol non-interactiv
 
 ---
 
+## The running example (read this first)
+
+Toy statement, used in every round below:
+
+> **"I know a secret x such that x³ + x + 5 = 35"** (secret: x = 3)
+
+It has the same shape as proveOwnership's *"I know sk such that
+SHA-256(prefix ‖ sk) = assetOwner"* — secret in, public value out — just small enough to
+trace by hand.
+
+**Arithmetization (what ZKIR pass 2 does for us).** A PLONK circuit is a table. Columns
+are *registers*, rows are *steps*. We use three witness columns `a, b, c` ("advice
+columns") and one gate equation whose behaviour on each row is chosen by fixed *selector*
+columns:
+
+```
+q_M·(a·b) + q_L·a + q_R·b + q_O·c + q_C = 0        (one equation, checked on every row)
+```
+
+The computation becomes 4 rows:
+
+| row | meaning        | a  | b | c  | selectors                  | gate check         |
+|-----|----------------|----|---|----|----------------------------|--------------------|
+| 0   | x·x = x²       | 3  | 3 | 9  | q_M=1, q_O=−1              | 3·3 − 9 = 0        |
+| 1   | x²·x = x³      | 9  | 3 | 27 | q_M=1, q_O=−1              | 9·3 − 27 = 0       |
+| 2   | x³ + x = 30    | 27 | 3 | 30 | q_L=1, q_R=1, q_O=−1       | 27 + 3 − 30 = 0    |
+| 3   | 30 + 5 = out   | 30 | 0 | 35 | q_L=1, q_C=5, q_O=−1       | 30 + 5 − 35 = 0    |
+
+`c` at row 3 is bound to the **public input** 35 (the role `assetOwner` plays for us).
+
+The gate equation alone is not enough: nothing yet forces the `9` in row 1 column `a`
+to be the same `9` produced in row 0 column `c`. Those links are the **copy constraints**
+(the "wires"):
+
+```
+a0 = b0 = b1 = b2   (all are x)      c0 = a1   (x²)
+c1 = a2   (x³)                       c2 = a3   (30)        c3 = public input 35
+```
+
+In our real circuit, every time a ZKIR instruction reuses a memory index (e.g. `var 9`),
+that's a copy constraint between two cells of this grid.
+
+Column kinds, because the code refers to them constantly:
+- **advice** columns (`a, b, c`) — prover's private values, committed every proof;
+- **fixed** columns (`q_M, q_L, …`) — selectors/constants baked into the proving key;
+- **instance** columns — public inputs the verifier knows (`35`).
+
+---
+
 ## Round 0 — Bind the statement
 
 Before anything random happens, the verifying key and the public inputs are hashed into
@@ -41,6 +91,14 @@ is being proven.
 
     let (advice, challenges) = parse_advices(params, pk, circuits, instances, transcript, rng)?;
 ```
+
+### Example
+
+The transcript starts as `Blake2b( vk_of_{x³+x+5 circuit} ‖ 35 )`. Every challenge below
+(θ, β, γ, y, x, x₁…x₄) is derived from this running hash. Consequence: a proof made for
+"= 35" cannot be replayed as a proof for "= 36" — change the public input and every
+challenge changes, so nothing downstream verifies. (For us: the proof is pinned to this
+exact `assetOwner`, `assetExpired`, and the transaction's binding input.)
 
 ---
 
@@ -71,6 +129,30 @@ these commitments.
                 transcript.write(commitment)?;
             }
 ```
+
+### Example
+
+Column `a` is the vector `[3, 9, 27, 30]`. Pick an evaluation domain of 4 points
+`{1, ω, ω², ω³}` (ω a 4th root of unity in the field). "Column → polynomial" means: find
+the unique degree-<4 polynomial with
+
+```
+a(1) = 3,   a(ω) = 9,   a(ω²) = 27,   a(ω³) = 30
+```
+
+(that's `lagrange_from_vec` / Lagrange interpolation). Same for `b(X)` from `[3,3,3,0]`
+and `c(X)` from `[9,27,30,35]`. In reality a few extra rows are appended and filled with
+random values (`*cell = F::random(...)`) — that randomness is what hides the 3s and 9s.
+
+Then one MSM per column:
+
+```
+[a] = commit(a(X))     [b] = commit(b(X))     [c] = commit(c(X))
+```
+
+each `[·]` a single BLS12-381 point — think "a fingerprint of the polynomial that you can
+later do algebra on". These three points go into the transcript. From here on the prover
+cannot change any cell of the table without it showing up later.
 
 ---
 
@@ -120,6 +202,31 @@ sits next to an equal table value. A′ and S′ are committed.
 ```
 
 (The sort itself: `permute_expression_pair`, `src/plonk/lookup/prover.rs:379+`.)
+
+### Example
+
+The toy circuit as written has no lookups, so add one rule: **"x must be a nibble
+(0..15)"**. That is a lookup of column `b = [3, 3, 3, 0]` into the fixed table
+`S = [0, 1, 2, …, 15]`.
+
+- *Compress* is a no-op here (single-column lookup). With a 2-column lookup like the
+  SHA-256 table `(X, ~X)`, compress would form `X + θ·~X` so one number stands for the pair.
+- *Sort*: the prover writes permuted copies so equal values line up:
+
+```
+A′ = [0, 3, 3, 3]        (b, sorted)
+S′ = [0, 3, 1, 2, …]     (table, reordered so S′[i] = A′[i] whenever A′[i] is "new")
+```
+
+Halo2's rule, checked later as a gate: on each row either `A′[i] == S′[i]` or
+`A′[i] == A′[i−1]`. Row 0: 0==0 ✓. Row 1: 3==3 ✓. Rows 2,3: 3 == previous 3 ✓.
+
+Cheat: if `b` contained 20, there is no way to arrange `A′`/`S′` so that 20 sits next to
+a table entry equal to 20 — it isn't in the table. The arrangement itself gets committed
+(`[A′]`, `[S′]`), so the prover is stuck with it.
+
+For us: every SHA-256 limb in the circuit is `b` here, and the 3-column spread table
+is `S`.
 
 ---
 
@@ -229,6 +336,47 @@ blinded exactly like the permutation product (`lookup/prover.rs:228-242`):
 > (`prover.rs:175-199`, `src/plonk/trash.rs`) — a Midnight addition, not part of
 > standard PLONK, so it is not covered here.
 
+### Example
+
+**3a — the x-wire.** We must prove `a0 = b0 = b1 = b2` without revealing that they're
+all 3. Give every cell a unique label (the code uses `δʲ·ωⁱ`: column j, row i). Let σ be
+the permutation that cycles the cells of each wire: σ(a0)=b0, σ(b0)=b1, σ(b1)=b2,
+σ(b2)=a0 (and similarly c0↔a1, c1↔a2, c2↔a3; cells with no wire map to themselves).
+
+For each cell form the ratio from the source comment:
+
+```
+        value + β·label      + γ
+ratio = ------------------------
+        value + β·σ(label)   + γ
+```
+
+Over the whole x-wire the numerators are `{3+β·a0+γ, 3+β·b0+γ, 3+β·b1+γ, 3+β·b2+γ}`
+and the denominators are the *same four factors* (σ just rotates which label goes
+with which cell) — so the product is exactly **1**.
+
+Smallest possible demo, two cells labelled 1 and 2 that σ swaps:
+
+```
+honest (both = 7):   (7+1β+γ)(7+2β+γ) / (7+2β+γ)(7+1β+γ)  = 1
+
+cheat (7 and 8):     (7+1β+γ)(8+2β+γ) / (7+2β+γ)(8+1β+γ)  ≠ 1
+                     — for this to equal 1, β,γ would have to be a root of a fixed
+                       nonzero polynomial: probability ≈ 1/|F| ≈ 2⁻²⁵⁵
+```
+
+The prover then builds z row by row: `z[0]=1, z[1]=z[0]·ratio₀, z[2]=z[1]·ratio₁, …`
+(that's the `for row in 1..n` loop), commits `[z]`. Later a *gate* checks
+`z(ωX) = z(X)·ratio(X)` on every row and `z(1)=1`; because the total product telescopes
+to 1, this passes iff every copy constraint holds. Critically, β and γ were sampled
+*after* `[a],[b],[c]` were committed — the prover couldn't pick values to fool them.
+
+**3b — the nibble lookup.** Same mechanic with the Round 2 columns:
+numerator per row `(b[i]+β)(S[i]+γ)`, denominator `(A′[i]+β)(S′[i]+γ)`. Since A′ is a
+permutation of b and S′ a permutation of S (padded), the multiset of factors is the same
+top and bottom → product is 1. The `batch_invert` just computes all the denominators'
+inverses in one pass.
+
 ---
 
 ## Round 4 — The quotient polynomial h(X) (challenge y)
@@ -305,6 +453,46 @@ blinded and committed.
         }
 ```
 
+### Example
+
+Write the gate as a polynomial using the column polynomials from Round 1:
+
+```
+gate(X) = q_M(X)·a(X)·b(X) + q_L(X)·a(X) + q_R(X)·b(X) + q_O(X)·c(X) + q_C(X)
+```
+
+Evaluate it at each domain point = each row: row 0 → 1·3·3 + 0 + 0 + (−1)·9 + 0 = 0;
+row 1 → 27−27 = 0; row 2 → 27+3−30 = 0; row 3 → 30+5−35 = 0. So `gate(X)` is zero on
+all of `{1, ω, ω², ω³}`.
+
+Fold *everything* with y (this is what `evaluate_h` builds):
+
+```
+C(X) = gate(X)
+     + y  · [ z(ωX)·denominators(X) − z(X)·numerators(X) ]    ← permutation rule (3a)
+     + y² · [ L₀(X)·(z(X) − 1) ]                               ← z starts at 1
+     + y³ · [ lookup rules (3b, Round 2 sortedness) ]
+     + …
+```
+
+Each bracket is zero on every row if the prover is honest, so C is zero on every row,
+so C is divisible by the polynomial that vanishes exactly there:
+
+```
+Z_H(X) = (X−1)(X−ω)(X−ω²)(X−ω³) = X⁴ − 1
+```
+
+The prover computes **h(X) = C(X) / (X⁴ − 1)** — exact division, no remainder — and
+commits `[h]` (in pieces, since h has degree ≈ 3·4).
+
+**Cheat.** Suppose the prover only knows x = 4. Honest arithmetic gives the table
+`a=[4,16,64,68], c=[16,64,68,73]` — but c₃ must copy the public input 35, so they
+overwrite c₃ = 35. Now row 3: 68 + 5 − 35 = 38 ≠ 0. `gate(ω³) = 38`, so C(ω³) ≠ 0, so
+**C is not divisible by X⁴−1**: the "division" leaves a remainder and there is no
+polynomial h with h·(X⁴−1) = C. Whatever the prover commits as `[h]` is a lie that
+Round 5 will expose. (Patching the table any other way just moves the nonzero to a
+different row or breaks a copy constraint in Round 3 — same outcome.)
+
 ---
 
 ## Round 5 — Evaluations at the challenge point x
@@ -348,6 +536,34 @@ The evaluation kernel (`src/plonk/prover.rs:657-690`):
         ...
             transcript.write(&eval)?;
 ```
+
+### Example
+
+The transcript hash now yields a challenge point x\* — some essentially random field
+element, *not* one of the 4 domain points. The prover evaluates its polynomials there and
+sends just the numbers:
+
+```
+a(x*), b(x*), c(x*),  z(x*), z(ω·x*),  h(x*),  plus the fixed/selector evals
+```
+
+(`rotate_omega(x, at)` is how "next row" queries like z(ω·x\*) are produced.)
+
+The verifier can now compute C(x\*) itself from those scalars — it knows the gate
+formula, y, β, γ — and checks a single field equation:
+
+```
+C(x*)  ≟  h(x*) · (x*⁴ − 1)
+```
+
+Why one point is enough: if the prover cheated, `C(X) − h(X)·(X⁴−1)` is some *nonzero*
+polynomial of degree ≤ ~12 (toy) or ≤ d·2^k (real). A nonzero polynomial of degree D has
+at most D roots. x\* was chosen uniformly from ~2²⁵⁵ field elements *after* everything
+was committed, so the chance it lands on one of those ≤ D roots is ≈ D/2²⁵⁵ — i.e. never.
+That's Schwartz–Zippel: evaluating at one random point is as good as checking every row.
+
+In the x=4 cheat from Round 4: C(x\*) − h(x\*)(x\*⁴−1) ≠ 0 for any h the prover could
+have committed, and the check fails.
 
 ---
 
@@ -405,6 +621,44 @@ KZG opening at x₃ is the last group element of the proof.
         transcript.write(&pi)
 ```
 
+### Example
+
+Round 5 only works if `a(x*)` really *is* the evaluation of the polynomial behind `[a]`
+— otherwise the prover could just send whatever scalars make the equation balance. KZG
+closes that hole.
+
+**Single opening, the core idea.** Claim: `a(x*) = v`. Then `a(X) − v` has a root at x\*,
+so it is divisible by `(X − x*)`:
+
+```
+w(X) = (a(X) − v) / (X − x*)        ← exact division iff the claim is true
+π    = commit(w(X))                 ← one more curve point
+```
+
+The verifier checks one pairing equation using the SRS:
+
+```
+e( [a] − v·G ,  H )  =  e( π ,  (s − x*)·H )
+```
+
+Here `s` is the trusted-setup secret: nobody knows it, but `s·H` and the powers `sⁱ·G`
+exist inside the SRS files from srs.midnight.network, which is exactly what lets both
+sides be computed "in the exponent" without knowing s. If v is wrong, the division isn't
+exact, and no π satisfies the equation.
+
+**Batching (what x₁…x₄ do).** The toy needs ~10 openings (a, b, c, z, h… at x\*, plus z at
+ω·x\*); the real circuit needs dozens. Opening each separately would mean dozens of π's
+and dozens of pairings. Instead:
+
+- x₁: combine all polynomials opened at the *same* point-set into one `q` each
+  (`q = a + x₁·b + x₁²·c + …`) — a random linear combination is wrong iff any term is
+  wrong;
+- Kate-divide each q by its points and combine with x₂ into `f_poly`; commit `[f]`;
+- x₃: fresh opening point; send each q(x₃);
+- x₄: fold all q's and f into `final_poly`; π = its single KZG witness at x₃.
+
+Net result: **one π, one pairing check**, covering every evaluation in the proof.
+
 ---
 
 ## The verifier (mirror image)
@@ -413,6 +667,46 @@ The verifier replays the same transcript, folds every commitment and evaluation 
 multi-scalar multiplications (`multi_prepare` → `DualMSM`, `src/poly/kzg/mod.rs:192+`,
 gate logic in `src/plonk/verifier.rs`), and accepts iff **one pairing equation** on
 BLS12-381 holds. Constant work, regardless of circuit size.
+
+### Example
+
+What the verifier holds at the end, for the toy:
+
+```
+commitments : [a] [b] [c]  [A′] [S′]  [z_perm] [z_lookup]  [rand]  [h]  [f]  π
+scalars     : a(x*) b(x*) c(x*) z(x*) z(ωx*) h(x*) …  q_i(x₃)
+public      : 35, the vk
+```
+
+It re-derives θ, β, γ, y, x\*, x₁…x₄ by re-hashing the transcript (Blake2b) — so the
+prover couldn't have chosen them — recomputes `C(x*)` from the scalars, checks
+`C(x*) = h(x*)(x*⁴−1)`, then folds all commitments/evaluations into two MSMs and runs the
+single pairing check that certifies every scalar is an honest opening. Cost is a fixed
+handful of curve operations whether the circuit has 4 rows or 2^k. A Midnight node does
+exactly this against the 2.6 KB verifier key stored in your contract's on-chain state.
+
+### Zero-knowledge, in the example
+
+Across the whole transcript the verifier saw: curve points (hiding, because Round 1 put
+random values in the tail rows and Round 4 added a random polynomial), a few evaluations
+at one random point (blinded by the same randomness), and π. Run the protocol with x = 3
+and with some other secret that also satisfies the relation — the transcripts are
+statistically indistinguishable. The only things revealed are the public inputs: `35`
+here; `assetOwner` and `assetExpired` (and nothing about `sk`) in proveOwnership.
+
+---
+
+## Mapping the example back to proveOwnership
+
+| Toy | Real (proveOwnership) |
+|---|---|
+| x = 3 | your 32-byte `assetOwnerSecretKey` (as 2 field limbs) |
+| x³ + x + 5 | SHA-256("assetOwner:pk:" ‖ sk), built from ~thousands of spread-table rows |
+| 35 (public input) | `assetOwner` + `assetExpired` + binding input + comm. commitment (the 19 `declare_pub_input`s) |
+| 4 rows, 3 columns | 2^k rows, dozens of columns (ZkStdLib architecture) |
+| copy constraints between 4 rows | every reused ZKIR memory index |
+| nibble lookup into {0..15} | 2 parallel spread-table lookups per SHA-256 row |
+| commit = 4-term MSM | commit = 2^k-term MSM in blst ← **your circuitProofMs** |
 
 ---
 
@@ -438,165 +732,3 @@ tar xzf midnight-proofs-0.7.1.crate
 
 Snippets in this document are quoted verbatim from that tarball (some marked `...` where
 boilerplate was elided); all line numbers refer to it.
-
----
-
-## Appendix — A worked toy example
-
-Everything above, but with numbers you can check by hand. Toy statement:
-
-> **"I know a secret x such that x³ + x + 5 = 35"** (secret: x = 3)
-
-This plays the role of proveOwnership's *"I know sk such that SHA-256(prefix ‖ sk) =
-assetOwner"* — same shape (secret in, public value out), just small enough to trace.
-
-### Step A — Arithmetize (what ZKIR pass 2 does for us)
-
-PLONK circuits are a table. Three witness columns `a, b, c` (our "advice columns") and
-one gate equation controlled by fixed selector columns:
-
-```
-q_M·(a·b) + q_L·a + q_R·b + q_O·c + q_C = 0        (one equation, every row)
-```
-
-Our computation becomes 4 rows:
-
-| row | meaning        | a  | b | c  | selectors                  | check              |
-|-----|----------------|----|---|----|----------------------------|--------------------|
-| 0   | x·x = x²       | 3  | 3 | 9  | q_M=1, q_O=−1              | 3·3 − 9 = 0        |
-| 1   | x²·x = x³      | 9  | 3 | 27 | q_M=1, q_O=−1              | 9·3 − 27 = 0       |
-| 2   | x³ + x = 30    | 27 | 3 | 30 | q_L=1, q_R=1, q_O=−1       | 27 + 3 − 30 = 0    |
-| 3   | 30 + 5 = out   | 30 | 0 | 35 | q_L=1, q_C=5, q_O=−1       | 30 + 5 − 35 = 0    |
-
-`c` at row 3 is bound to the **public input** 35 (like `assetOwner` in our circuit).
-
-Notice the gate equation alone does NOT make this sound: nothing yet forces the `9` in
-row 1 column `a` to be the same `9` produced in row 0 column `c`. Those are the **copy
-constraints** (wires):
-
-```
-a0 = b0 = b1 = b2   (all are x)      c0 = a1   (x²)
-c1 = a2   (x³)                       c2 = a3   (30)
-```
-
-That's exactly what ZKIR's memory indices become: every time an instruction reuses
-`var 9`, that's a copy constraint between two cells.
-
-### Step B — Columns become polynomials (Round 1)
-
-Pick a domain of 4 points {1, ω, ω², ω³} (ω = 4th root of unity). Interpolate column `a`
-so that a(1)=3, a(ω)=9, a(ω²)=27, a(ω³)=30 — same for b, c. Append random values in the
-tail rows (blinding), then commit:
-
-```
-[a] = commit(a(X)),  [b] = commit(b(X)),  [c] = commit(c(X))
-```
-
-Each `[·]` is a single BLS12-381 point (an MSM over the SRS). After these three points
-hit the transcript, the prover can never change the table.
-
-### Step C — Copy constraints via the grand product (Round 3)
-
-How do you prove `a0 = b0 = b1 = b2` *without revealing the values*? The permutation
-argument. Label every cell with a distinct index, and let σ be the permutation that
-cycles each wire's cells. The prover receives random β, γ and forms, per cell:
-
-```
-        value + β·(cell index) + γ
-ratio = ---------------------------
-        value + β·σ(cell index) + γ
-```
-
-**Mini demo that the telescoping works.** Two cells at indices 1, 2, permutation σ swaps
-them (they're supposed to be equal). Honest case, both cells = 7:
-
-```
-(7 + 1β + γ)(7 + 2β + γ)
-------------------------  = 1        ← numerator and denominator are the same
-(7 + 2β + γ)(7 + 1β + γ)              set of factors, just reordered
-```
-
-Cheating case, cells are 7 and 8:
-
-```
-(7 + 1β + γ)(8 + 2β + γ)
-------------------------  ≠ 1  for random β, γ (equality would need β,γ to hit
-(7 + 2β + γ)(8 + 1β + γ)        a root of a fixed nonzero polynomial — probability ~ 1/|F|)
-```
-
-The prover commits the running product z(X): z(1)=1, and each row multiplies in that
-row's ratios. The verifier will later check z(ω·X) = z(X)·(ratios) as a *gate*, plus
-z(1) = 1. Product telescopes to 1 ⟺ every copy constraint holds. Identical math for the
-lookup product, with (input+β)(table+γ) fractions instead — that's how each SHA-256 limb
-is proven to live in the spread table.
-
-### Step D — All gates at once: the quotient (Round 4)
-
-Collect every constraint into one polynomial with powers of a challenge y:
-
-```
-C(X) = gate(X) + y·(z-transition rule)(X) + y²·(z(1)=1 rule)(X) + ...
-```
-
-By construction C vanishes at all 4 domain points — check row 0: 3·3−9 = 0 ✓, etc.
-A polynomial vanishing on {1, ω, ω², ω³} is divisible by
-
-```
-Z_H(X) = (X−1)(X−ω)(X−ω²)(X−ω³) = X⁴ − 1
-```
-
-so the prover computes and commits **h(X) = C(X) / (X⁴ − 1)**.
-
-Why this catches cheating: suppose the prover used x = 4 but still claimed output 35.
-Then row 3 gives 69 + 5 − 35 = 39 ≠ 0 (4³=64, 64+4=68... whichever way you patch the
-table, *some* row fails). C no longer vanishes at that row ⇒ C is **not** divisible by
-X⁴−1 ⇒ there is no polynomial h to commit to. Anything the prover commits as "h" will
-fail the next step.
-
-### Step E — Spot check at a random point (Round 5)
-
-Verifier sends random challenge x* (in reality: Blake2b of the transcript). Prover
-reveals the handful of scalars a(x*), b(x*), c(x*), z(x*), z(ω·x*), h(x*)… The verifier
-plugs them into one number:
-
-```
-C(x*) − h(x*)·(x*⁴ − 1)  ≟  0
-```
-
-If the prover cheated, C − h·Z_H is a *nonzero* polynomial of degree ≤ d·n, so it has at
-most d·n roots — and the chance a random x* from a ~2²⁵⁵-element field lands on one is
-astronomically small (Schwartz–Zippel). One point check ≈ checking all rows.
-
-### Step F — Prove the revealed scalars aren't lies (Round 6, KZG)
-
-Step E only works if a(x*) etc. really are evaluations of the *committed* polynomials.
-That's KZG's job. The one-liner: claiming p(x*) = v is the same as claiming that
-p(X) − v is divisible by (X − x*), so the prover commits the quotient
-
-```
-π = commit( (p(X) − v) / (X − x*) )
-```
-
-and the verifier checks one pairing equation `e([p] − v·G, H) = e(π, (s − x*)·H)` using
-the SRS (that "s" is the secret from the trusted setup — nobody knows it, it only exists
-inside the SRS points from srs.midnight.network). Rounds 6's x₁…x₄ machinery just
-batches ~dozens of such openings into a single π.
-
-### Step G — Zero-knowledge
-
-The verifier saw: curve-point commitments (hiding, thanks to the random tail rows from
-Round 1), a few evaluations at one random point (blinded the same way), and π. From
-x = 3 vs x = 5 the transcripts are statistically indistinguishable. Our real circuit
-reveals `assetOwner` and `assetExpired` (declared public inputs) and nothing about `sk`.
-
-### Mapping back to proveOwnership
-
-| Toy | Real (proveOwnership) |
-|---|---|
-| x = 3 | your 32-byte `assetOwnerSecretKey` (as 2 field limbs) |
-| x³ + x + 5 | SHA-256("assetOwner:pk:" ‖ sk), built from ~thousands of spread-table rows |
-| 35 (public input) | `assetOwner` + `assetExpired` + binding input + comm. commitment (the 19 `declare_pub_input`s) |
-| 4 rows, 3 columns | 2^k rows, dozens of columns (ZkStdLib architecture) |
-| copy constraints between 4 rows | every reused ZKIR memory index |
-| no lookups | 2 parallel spread-table lookups per SHA-256 row |
-| commit = 4-term MSM | commit = 2^k-term MSM in blst ← **your circuitProofMs** |
