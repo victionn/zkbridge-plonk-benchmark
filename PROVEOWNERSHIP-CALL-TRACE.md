@@ -130,7 +130,7 @@ function persistentHash(rt_type, value) {
 ```
 → `ocrt` = **`@midnight-ntwrk/onchain-runtime` · `midnight_onchain_runtime_wasm_bg.wasm`**,
 compiled from **midnight-ledger · `onchain-runtime-wasm/`** — SHA-256 computed natively.
-(This is the *out-of-circuit* value; the *in-circuit* SHA-256 happens at hop 33.)
+(This is the *out-of-circuit* value; the *in-circuit* SHA-256 happens at hop 28.)
 
 ### Hop 10 — partition the transcript → public inputs
 **midnight-js-contracts · `dist/index.mjs:307-315` (`partitionTranscript`)**
