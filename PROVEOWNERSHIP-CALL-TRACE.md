@@ -27,6 +27,75 @@ LAYER 2  Rust — midnight-ledger (proof server)   hops 15–26  (interprets the
 LAYER 3  Rust — midnight-zk crates               hops 27–40  (constraints → PLONK proof)
 ```
 
+
+## Hop index — one line per call
+
+**Layer 1 — JavaScript (build the unproven transaction)**
+
+| # | Call | What it does |
+|---|---|---|
+| 1 | `callTx.proveOwnership()` (api.ts) | Benchmark fires the circuit call and arms the proof timer. |
+| 2 | `createCircuitCallTxInterface` | Generated wrapper routes the name "proveOwnership" into the SDK. |
+| 3 | `submitCallTx` | Orchestrator: build unproven tx (4–12), then prove + submit (13). |
+| 4 | `createUnprovenCallTx` / `getStates` | Fetches on-chain contract state (indexer) and your private state (LevelDB). |
+| 5 | `call` | Executes the circuit as plain JS to record inputs, outputs, and the state-access transcript. |
+| 6 | generated `proveOwnership` wrapper | Sets up an empty `proofData` and invokes the circuit body. |
+| 7 | `_proveOwnership_0` | The circuit logic: key present? asset not expired? hash(sk) == assetOwner? |
+| 8 | `_assetOwnerSecretKey_0` → witnesses.ts | Pulls the 32-byte secret key out of local private state — the witness. |
+| 9 | `_publicKey_0` → `persistentHash` (WASM) | Computes SHA-256(prefix ‖ sk) natively — the out-of-circuit reference value. |
+| 10 | `partitionTranscripts` (ledger WASM) | Splits the transcript into guaranteed/fallible halves → the PLONK public inputs. |
+| 11 | `createUnprovenLedgerCallTx` | Packs everything into an `UnprovenTransaction` — a proof preimage with no proof. |
+| 12 | `zkConfigProvider.get` | Reads your three artifacts from `managed/counter`: `.prover`, `.verifier`, `.bzkir`. |
+| 13 | `proofProvider.proveTx` | Hands tx + artifacts to the proof provider; the timing proxy starts the clock. |
+| 14 | HTTP `POST /prove-tx` | Ships tx bytes ++ Borsh{pk, vk, zkir} to `127.0.0.1:6300`. |
+
+**Layer 2 — Rust proof server (interpret the circuit)**
+
+| # | Call | What it does |
+|---|---|---|
+| 15 | `prove_transaction` handler | Deserializes the payload, wires the key resolver, queues the job (2-worker pool). |
+| 16 | `Transaction::prove` | Walks the tx; proves contract calls and coin offers concurrently. |
+| 17 | `ContractCall::prove` | Dry-run check, patches transcripts with noops, computes the binding input. |
+| 18 | `LocalProvingProvider::check` | Loads the ZKIR and dry-runs it to find the active transcript segments. |
+| 19 | `LocalProvingProvider::prove` | Injects the binding input, delegates to `ProofPreimage::prove`. |
+| 20 | `ProofPreimage::prove` | Gunzips + deserializes your keys, runs the prover, then **self-verifies** the proof. |
+| 21 | `preprocess` (ZKIR pass 1) | Executes all 52 instructions over field memory → witness vector + public inputs. |
+| 22 | `Zkir::prove` | Picks k, fetches the KZG SRS for 2^k, initializes the PLONK pk, calls the engine. |
+
+**Layer 3 — PLONK engine (constraints → proof)**
+
+| # | Call | What it does |
+|---|---|---|
+| 23 | `midnight_zk_stdlib::prove` | Wraps the ZKIR relation in a `MidnightCircuit` with instance + witness. |
+| 24 | `BlstPLONK::prove` | Opens the Blake2b transcript, runs `create_proof`, finalizes → **the proof bytes**. |
+| 25 | `create_proof` | Splits the work: `compute_trace` (rounds 0–4) then `finalise_proof` (rounds 4–6). |
+| 26 | `MidnightCircuit::synthesize` | Configures ZkStdLib columns/gates and instantiates the chips the IR needs. |
+| 27 | `Relation::circuit` (ZKIR pass 2) | Replays the 52 instructions, laying each down as constraint gadgets. |
+| 28 | `ZkStdLib::sha2_256` → `Sha256Chip` | In-circuit SHA-256: spread table, message schedule, 64 compression rounds — most of the rows. |
+| 29 | round 0 | Hashes vk + public inputs into the transcript (binds the statement). |
+| 30 | round 1 | Blinds and commits every advice (witness) column — one MSM each. |
+| 31 | round 2 | θ; compresses and sorts the lookup columns, commits A′/S′. |
+| 32 | round 3a | β, γ; commits the permutation grand product (all copy constraints). |
+| 33 | round 3b | Commits the lookup grand product. |
+| 34 | round 3c | Commits the trash argument (Midnight fork addition). |
+| 35 | round 4 | Commits the random blinding polynomial; samples y. |
+| 36 | round 4 | `evaluate_h`: evaluates every constraint over the extended domain, folds with y. |
+| 37 | round 4 | Divides by Xⁿ−1; blinds and commits the quotient pieces. |
+| 38 | round 5 | x; writes every polynomial evaluation (incl. rotations) to the transcript. |
+| 39 | round 6 | Multipoint opening x₁…x₄ → the single KZG witness π. |
+| 40 | `msm_specific` → blst | Every commitment above executes as a multi-scalar multiplication on BLS12-381. |
+
+**The way back**
+
+| # | Call | What it does |
+|---|---|---|
+| 41 | self-verify | Server checks its own proof against your `.verifier` key before returning. |
+| 42 | attach proof | `ProofVersioned::V2` replaces the preimage in the `ContractCall`. |
+| 43 | HTTP 200 | Proven transaction serialized into the response body. |
+| 44 | JS deserialize | Client gets an `UnbalancedTransaction`; timing proxy stops → `circuitProofMs`. |
+| 45 | balance + submit | Wallet Zswap-proves fees (same `/prove-tx`) and submits to the node. |
+| 46 | node verify | Validators `batch_verify` against the on-chain vk — one pairing check. |
+
 ---
 
 ## LAYER 1 — JavaScript (this repo + `node_modules/@midnight-ntwrk/*`)
