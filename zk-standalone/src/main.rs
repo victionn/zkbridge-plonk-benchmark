@@ -1,12 +1,12 @@
 //! Standalone PLONK prove + verify for the `proveOwnership` circuit.
 //!
 //! Replaces the Docker proof server + HTTP hop with a single process:
-//!   1. loads the compiled circuit (`proveOwnership.bzkir`) and keys from ../managed/counter
+//!   1. loads the compiled circuit (`proveOwnership.zkir`) from ../managed/counter
 //!   2. generates a valid witness in Rust (random secret key; assetOwner derived from it,
 //!      exactly the way the contract derives it: SHA-256("assetOwner:pk:" ++ sk))
 //!   3. validates the witness with the real ZKIR `preprocess` (via `ProofPreimage::check`)
 //!   4. runs the real PLONK prover (midnight-proofs 0.7.1, KZG/BLS12-381, Blake2b FS)
-//!   5. verifies the proof with the verifier key from `managed/counter`
+//!   5. verifies the proof with the verifier key (regenerated from the same IR)
 //!   6. negative tests: a tampered proof and a tampered statement must both be rejected.
 //!
 //! The SRS (KZG public parameters) is fetched once from srs.midnight.network into
@@ -28,6 +28,15 @@ use transient_crypto::proofs::{
     KeyLocation, ProofPreimage, ProverKey, VerifierKey, Zkir, PARAMS_VERIFIER,
 };
 use transient_crypto::repr::FieldRepr;
+
+/// Compact hex rendering of a field element (little-endian bytes, trailing zeros trimmed).
+fn h(f: &Fr) -> String {
+    let mut b = f.as_le_bytes();
+    while b.len() > 1 && b.last() == Some(&0) {
+        b.pop();
+    }
+    format!("0x{}", hex::encode(b))
+}
 
 /// Random field element with ~248 bits of entropy.
 fn random_fr() -> Fr {
@@ -207,6 +216,29 @@ async fn main() -> Result<()> {
         preimage.public_transcript_outputs.len()
     );
 
+    println!("\n-- THE SECRET (witness / private_transcript; never leaves this process) --");
+    println!("  sk (32 bytes)        = {}{}", hex::encode(lo), hex::encode(hi));
+    println!("  [0] Maybe.is_some    = {}", h(&preimage.private_transcript[0]));
+    println!("  [1] sk limb (8-bit)  = {}", h(&preimage.private_transcript[1]));
+    println!("  [2] sk limb (248-bit)= {}", h(&preimage.private_transcript[2]));
+
+    println!("\n-- LEDGER READS (public_transcript_outputs; the contract state) --");
+    println!("  [0] assetExpired     = {}", h(&preimage.public_transcript_outputs[0]));
+    println!("  [1] assetOwner lo    = {}   <- SHA-256(\"assetOwner:pk:\"++sk) limb", h(&preimage.public_transcript_outputs[1]));
+    println!("  [2] assetOwner hi    = {}   <- SHA-256(\"assetOwner:pk:\"++sk) limb", h(&preimage.public_transcript_outputs[2]));
+
+    println!("\n-- DECLARED PUBLIC INPUTS (public_transcript_inputs; the transcript ops) --");
+    for (i, v) in preimage.public_transcript_inputs.iter().enumerate() {
+        println!("  [{i:2}] {}", h(v));
+    }
+
+    println!("\n-- BINDING & COMMITMENT --");
+    println!("  binding_input        = {}", h(&preimage.binding_input));
+    let (cc, cr) = preimage.communications_commitment.unwrap();
+    println!("  comm commitment      = {}", h(&cc));
+    println!("  comm randomness      = {}", h(&cr));
+    println!();
+
     // 3. Validate with the REAL preprocess (same code path the proof server runs)
     let t = Instant::now();
     preimage.check(&ir).map_err(|e| anyhow!("{e}"))?;
@@ -257,6 +289,15 @@ async fn main() -> Result<()> {
         proof.0.len(),
         pis.len()
     );
+    println!("\n-- THE STATEMENT THE VERIFIER CHECKS (final public-input vector) --");
+    println!("  [ 0] binding_input   = {}", h(&pis[0]));
+    println!("  [ 1] comm commitment = {}", h(&pis[1]));
+    for (i, v) in pis.iter().enumerate().skip(2) {
+        println!("  [{i:2}] transcript      = {}", h(v));
+    }
+    println!("\n-- THE PROOF (first 64 of {} bytes) --", proof.0.len());
+    println!("  {}...", hex::encode(&proof.0[..64]));
+    println!();
 
     // 6. VERIFY — against the verifier key and the embedded verifier parameters
     //    (transient-crypto's PARAMS_VERIFIER).
