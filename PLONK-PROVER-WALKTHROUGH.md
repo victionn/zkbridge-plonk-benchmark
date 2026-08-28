@@ -34,6 +34,8 @@ It has the same shape as proveOwnership's *"I know sk such that
 SHA-256(prefix ‖ sk) = assetOwner"* — secret in, public value out — just small enough to
 trace by hand.
 
+[bridge.compact:57-68](bridge.compact#L57-L68)
+
 **Arithmetization (what ZKIR pass 2 does for us).** A PLONK circuit is a table. Columns
 are *registers*, rows are *steps*. We use three witness columns `a, b, c` ("advice
 columns") and one gate equation whose behaviour on each row is chosen by fixed *selector*
